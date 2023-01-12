@@ -3,10 +3,6 @@ import cv2 as cv
 
 # 检测函数
 def face_detect_demo(img):
-    print(img.shape)
-    r = 0.5
-    w, h, _ = img.shape
-    img = cv.resize(img, dsize=(int(h * r), int(w * r)))
     # 1 转换为灰度图
     gary = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     # 加载分类器
@@ -19,12 +15,22 @@ def face_detect_demo(img):
     cv.imshow("result", img)
 
 
-# 读取图片
-img = cv.imread("images/2.jpg")
-face_detect_demo(img)
+# 读取摄像头
+cap = cv.VideoCapture(0)
+
+# cap.read()
+
+# face_detect_demo(img)
 # 等待
 while True:
-    if ord("q") == cv.waitKey(0):
+    flag, frame = cap.read()
+    if not flag:
+        break
+    face_detect_demo(frame)
+    if ord("q") == cv.waitKey(1):  # 这里delay = 1 才不会一直第一帧
         break
 # 释放内存
 cv.destroyAllWindows()
+
+# 释放摄像头
+cap.release()
