@@ -18,7 +18,7 @@ class Trie(object):
     """
     def __init__(self):
         self.trie = {}
-        self.count = 0
+        self.count = 0  # 单词个数
 
     def __repr__(self):
         return str(self.trie)
@@ -81,4 +81,6 @@ class Trie(object):
 
 if __name__ == '__main__':
     trie = Trie()
-    trie.buildTree(["abdc","abckl"])
+    # trie.buildTree(["abdc","abckl"])
+    trie.add("abadc")
+    print(trie)
