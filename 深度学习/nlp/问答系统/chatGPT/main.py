@@ -4,8 +4,10 @@ import openai
 openai.api_key = "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"  # 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
 # use GPT-3 to generate text
 prompt = ""
-while prompt != "q":
+while True:
     prompt = input("问题： ")
+    if prompt == "q":
+        break
     completions = openai.Completion.create(
         engine="text-davinci-003",
         prompt=prompt,
