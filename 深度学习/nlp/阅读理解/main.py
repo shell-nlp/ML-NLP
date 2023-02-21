@@ -1,5 +1,4 @@
 from transformers import BertModel, BertTokenizer
-from datasets import Dataset, load_dataset
 import torch
 import pandas as pd
 from torch.utils.data import Dataset, DataLoader
@@ -32,29 +31,46 @@ class MyData(Dataset):
         return len(self.data_df)
 
     def __getitem__(self, item):
-        context = self.data_df[item]["context"]
-        question = self.data_df[item]["question"]
-        answer_start = self.data_df[item]["answer_start"]
-        answer_end = self.data_df[item]["answer_end"]
+        context = self.data_df.iloc[item]["context"]
+        question = self.data_df.iloc[item]["question"]
+        answer_start = self.data_df.iloc[item]["answer_start"]
+        answer_end = self.data_df.iloc[item]["answer_end"]
         return context, question, answer_start, answer_end
 
 
-def fc():
-    pass
+tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 
 
-dataset = MyData()
-print(dataset)
-# DataLoader(dataset=dataset, batch_size=4, shuffle=True, num_workers=4, collate_fn=fc)
+def collate_fn(batch):
+    context = [item[0] for item in batch]
+    question = [item[1] for item in batch]
+    answer_start = [item[2] for item in batch]
+    answer_end = [item[3] for item in batch]
+    output = tokenizer(question, context, truncation=True, padding=True, return_tensors="pt")
+    output["answer_start"] = torch.tensor(answer_start)
+    output["answer_end"] = torch.tensor(answer_end)
+    return output
 
 
-# tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 class MyBert(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.bert = BertModel.from_pretrained('bert-base-chinese')
 
-    def forward(self, input_ids, attention_mask, token_type_ids, labels):
+    def forward(self, input_ids, attention_mask, token_type_ids, answer_start, answer_end, labels=None):
         output = self.bert(input_ids=input_ids,
                            attention_mask=attention_mask,
                            token_type_ids=token_type_ids)
+        print(output)
+
+
+if __name__ == '__main__':
+
+    dataset = MyData()
+
+    ds = DataLoader(dataset=dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
+    model = MyBert()
+    print(model)
+    for data in ds:
+        output = model(**data)
+        break
