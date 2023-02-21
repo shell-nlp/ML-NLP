@@ -64,13 +64,12 @@ class MyBert(torch.nn.Module):
         print(output)
 
 
-if __name__ == '__main__':
+from ..trainer import Trainer
 
+if __name__ == '__main__':
     dataset = MyData()
 
-    ds = DataLoader(dataset=dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
+    train_dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
     model = MyBert()
-    print(model)
-    for data in ds:
-        output = model(**data)
-        break
+    trainer = Trainer(model, epochs=20, lr=1e-5)
+    trainer.train(dataset_train=train_dataloader)
