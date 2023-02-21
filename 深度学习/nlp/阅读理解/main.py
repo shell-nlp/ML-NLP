@@ -56,15 +56,26 @@ class MyBert(torch.nn.Module):
     def __init__(self):
         super().__init__()
         self.bert = BertModel.from_pretrained('bert-base-chinese')
+        self.qa = torch.nn.Linear(self.bert.config.hidden_size, 2)
 
     def forward(self, input_ids, attention_mask, token_type_ids, answer_start, answer_end, labels=None):
         output = self.bert(input_ids=input_ids,
                            attention_mask=attention_mask,
                            token_type_ids=token_type_ids)
-        print(output)
+        token_output = output[0]
+        logits = self.qa(token_output)
+        print(logits.size())
+        start_logits, end_logits = torch.split(logits, 1, dim=-1)
+        print(start_logits.size())
+        start_logits = start_logits.squeeze(-1).contiguous()
+        end_logits = end_logits.squeeze(-1).contiguous()
+        assert 0
 
 
-from ..trainer import Trainer
+import sys, os
+
+sys.path.append("..")
+from trainer import Trainer
 
 if __name__ == '__main__':
     dataset = MyData()

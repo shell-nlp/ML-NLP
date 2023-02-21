@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from sklearn.model_selection import StratifiedKFold
 
 
 class Trainer(object):
@@ -19,5 +20,5 @@ class Trainer(object):
                 self.optimizer.step()
                 print('Epoch [{}/{}], Loss: {:.4f}'.format(epoch + 1, epoch, loss.item()))
 
-    def evel(self):
+    def evaluation(self):
         pass
