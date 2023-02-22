@@ -6,8 +6,8 @@ from collections import defaultdict
 
 
 class MyData(Dataset):
-    def __init__(self):
-        train_data_path = "./data/cmrc2018_public/train.json"
+    def __init__(self, label="train.json"):
+        train_data_path = "./data/cmrc2018_public/" + label
         df_train = pd.read_json(train_data_path)
         data_dict = defaultdict(list)
         for data in df_train["data"]:
@@ -76,7 +76,7 @@ class MyBert(torch.nn.Module):
         start_loss = loss_fct(start_logits, start_positions)
         end_loss = loss_fct(end_logits, end_positions)
         total_loss = (start_loss + end_loss) / 2
-        return total_loss
+        return {"loss": total_loss, "start_logits": start_logits, "end_logits": end_logits}
 
 
 import sys
@@ -85,9 +85,11 @@ sys.path.append("..")
 from trainer import Trainer
 
 if __name__ == '__main__':
-    dataset = MyData()
+    train_dataset = MyData()
+    dev_dataset = MyData(label="dev.json")
     batch_size = 16
-    train_dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+    dev_dataloader = DataLoader(dataset=dev_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     model = MyBert()
     trainer = Trainer(model, epochs=20, lr=1e-5)
-    trainer.train(dataset_train=train_dataloader)
+    trainer.train(dataset_train=train_dataloader, dataset_evel=dev_dataloader)
