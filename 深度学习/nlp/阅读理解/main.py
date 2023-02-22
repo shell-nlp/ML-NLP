@@ -64,23 +64,30 @@ class MyBert(torch.nn.Module):
                            token_type_ids=token_type_ids)
         token_output = output[0]
         logits = self.qa(token_output)
-        print(logits.size())
         start_logits, end_logits = torch.split(logits, 1, dim=-1)
-        print(start_logits.size())
         start_logits = start_logits.squeeze(-1).contiguous()
         end_logits = end_logits.squeeze(-1).contiguous()
-        assert 0
+        # 防止 开始位置和结束位置超出了 模型的输入  使用clamp忽略这些项
+        ignored_index = start_logits.size(1)
+        start_positions = answer_start.clamp(0, ignored_index)
+        end_positions = answer_end.clamp(0, ignored_index)
+
+        loss_fct = torch.nn.CrossEntropyLoss(ignore_index=ignored_index)
+        start_loss = loss_fct(start_logits, start_positions)
+        end_loss = loss_fct(end_logits, end_positions)
+        total_loss = (start_loss + end_loss) / 2
+        return total_loss
 
 
-import sys, os
+import sys
 
 sys.path.append("..")
 from trainer import Trainer
 
 if __name__ == '__main__':
     dataset = MyData()
-
-    train_dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True, collate_fn=collate_fn)
+    batch_size = 16
+    train_dataloader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     model = MyBert()
     trainer = Trainer(model, epochs=20, lr=1e-5)
     trainer.train(dataset_train=train_dataloader)
