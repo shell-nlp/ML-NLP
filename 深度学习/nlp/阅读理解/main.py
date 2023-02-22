@@ -13,35 +13,8 @@ tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 
 def get_squad_dataset(path):
     # Load and process the dataset
-    # processor = SquadV2Processor()
-    # path = "./data/cmrc2018_public/train.json"
-    with open(path, "r", encoding="utf-8") as f:
-        dataset = json.load(f)
-    examples = []
-    for data in dataset["data"]:
-        title = data["title"]
-        for para in data["paragraphs"]:
-            context = para["context"]
-            for qa in para["qas"]:
-                qas_id = qa["id"]
-                question = qa["question"]
-                answers = qa["answers"]
-                answer_text = answers[0]["text"]
-                start_position_character = answers[0]["answer_start"]
-
-                # Create a SquadExample for the current question
-                example = SquadExample(
-                    qas_id=qas_id,
-                    question_text=question,
-                    context_text=context,
-                    start_position_character=start_position_character,
-                    answer_text=answer_text,
-                    title=title,
-                    answers=answers,
-                    is_impossible=False,
-                )
-
-                examples.append(example)
+    processor = SquadV2Processor()
+    examples = processor.get_train_examples(data_dir="./data/cmrc2018_public", filename="train.json")
 
     features, dataset = squad_convert_examples_to_features(
         examples=examples,
@@ -51,7 +24,7 @@ def get_squad_dataset(path):
         max_query_length=64,
         is_training=True,
         return_dataset="pt",
-        threads=1,
+        threads=8,  # 建议多线程比较快
     )
     return dataset
 
