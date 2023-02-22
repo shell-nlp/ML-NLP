@@ -28,7 +28,7 @@ class Trainer(object):
                 loss.backward()
                 self.optimizer.step()
                 if idx % self.show_batch == 0:
-                    print('Epoch [{}/{}],batch:{} Loss: {:.4f}'.format(epoch + 1, epoch, idx, loss.item()))
+                    print('Epoch [{}/{}],batch:{} Loss: {:.4f}'.format(self.epochs, epoch + 1, idx, loss.item()))
             with torch.no_grad():  # 评估时禁止计算梯度
                 self.evaluation(dataset_evel, epoch)
 
@@ -54,4 +54,4 @@ class Trainer(object):
             acc = self.score(data)
             acc_list.append(acc)
         acc = sum(acc_list) / len(acc_list) * 100
-        print('Epoch [{}/{}], Acc: {:.4f} %'.format(epoch + 1, epoch, acc))
+        print('Epoch [{}/{}], Acc: {:.4f} %'.format(self.epochs, epoch + 1, acc))
