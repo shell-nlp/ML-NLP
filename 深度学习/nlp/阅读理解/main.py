@@ -87,9 +87,9 @@ from trainer import Trainer
 if __name__ == '__main__':
     train_dataset = MyData()
     dev_dataset = MyData(label="dev.json")
-    batch_size = 16
+    batch_size = 8
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     dev_dataloader = DataLoader(dataset=dev_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
     model = MyBert()
-    trainer = Trainer(model, epochs=20, lr=1e-5)
+    trainer = Trainer(model, epochs=10, lr=1e-4)
     trainer.train(dataset_train=train_dataloader, dataset_evel=dev_dataloader)

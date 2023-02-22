@@ -53,5 +53,5 @@ class Trainer(object):
             data = data.to(self.device)
             acc = self.score(data)
             acc_list.append(acc)
-        acc = sum(acc_list) / len(acc_list)
-        print('Epoch [{}/{}], Acc: {:.4f}'.format(epoch + 1, epoch, acc))
+        acc = sum(acc_list) / len(acc_list) * 100
+        print('Epoch [{}/{}], Acc: {:.4f}%'.format(epoch + 1, epoch, acc))
