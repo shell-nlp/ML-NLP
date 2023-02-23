@@ -30,6 +30,7 @@ class Trainer(object):
                     "start_positions": batch[3],
                     "end_positions": batch[4],
                 }
+                self.score(inputs)
                 loss = self.model(**inputs)["loss"]
                 self.optimizer.zero_grad()
                 loss.backward()
@@ -39,13 +40,13 @@ class Trainer(object):
             with torch.no_grad():  # 评估时禁止计算梯度
                 self.evaluation(dataset_evel, epoch)
 
-    def score(self, data):
-        start_logits = self.model(**data)["start_logits"]
-        end_logits = self.model(**data)["end_logits"]
+    def score(self, inputs):
+        start_logits = self.model(**inputs)["start_logits"]
+        end_logits = self.model(**inputs)["end_logits"]
         start_idx = torch.argmax(start_logits, dim=-1)
         end_idx = torch.argmax(end_logits, dim=-1)
-        answer_start = data["answer_start"]
-        answer_end = data["answer_end"]
+        answer_start = inputs["start_positions"]
+        answer_end = inputs["end_positions"]
         start = start_idx == answer_start
         end = end_idx == answer_end
         value = torch.logical_and(start, end)

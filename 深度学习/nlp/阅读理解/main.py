@@ -35,7 +35,7 @@ class MyBert(torch.nn.Module):
         self.bert = BertModel.from_pretrained('bert-base-chinese')
         self.qa = torch.nn.Linear(self.bert.config.hidden_size, 2)
 
-    def forward(self, input_ids, attention_mask, token_type_ids, answer_start, answer_end, labels=None):
+    def forward(self, input_ids, attention_mask, token_type_ids, start_positions, end_positions):
         output = self.bert(input_ids=input_ids,
                            attention_mask=attention_mask,
                            token_type_ids=token_type_ids)
@@ -46,8 +46,8 @@ class MyBert(torch.nn.Module):
         end_logits = end_logits.squeeze(-1).contiguous()
         # 防止 开始位置和结束位置超出了 模型的输入  使用clamp忽略这些项
         ignored_index = start_logits.size(1)
-        start_positions = answer_start.clamp(0, ignored_index)
-        end_positions = answer_end.clamp(0, ignored_index)
+        start_positions = start_positions.clamp(0, ignored_index)
+        end_positions = end_positions.clamp(0, ignored_index)
 
         loss_fct = torch.nn.CrossEntropyLoss(ignore_index=ignored_index)
         start_loss = loss_fct(start_logits, start_positions)
