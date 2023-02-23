@@ -21,9 +21,16 @@ class Trainer(object):
     def train(self, dataset_train, dataset_evel=None):
         self.model.train()
         for epoch in range(self.epochs):
-            for idx, data in tqdm(enumerate(dataset_train), total=len(dataset_train)):
-                data = data.to(self.device)
-                loss = self.model(**data)["loss"]
+            for idx, batch in tqdm(enumerate(dataset_train), total=len(dataset_train)):
+                batch = tuple(t.to(self.device) for t in batch)
+                inputs = {
+                    "input_ids": batch[0],
+                    "attention_mask": batch[1],
+                    "token_type_ids": batch[2],
+                    "start_positions": batch[3],
+                    "end_positions": batch[4],
+                }
+                loss = self.model(**inputs)["loss"]
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
@@ -48,10 +55,17 @@ class Trainer(object):
     def evaluation(self, dataset_evel, epoch):
         print("evaluation.....")
         self.model.eval()
-        acc_list = []
-        for idx, data in tqdm(enumerate(dataset_evel), total=len(dataset_evel)):
-            data = data.to(self.device)
-            acc = self.score(data)
-            acc_list.append(acc)
-        acc = sum(acc_list) / len(acc_list) * 100
-        print('Epoch [{}/{}], Acc: {:.4f} %'.format(self.epochs, epoch + 1, acc))
+        score_list = []
+        for idx, batch in tqdm(enumerate(dataset_evel), total=len(dataset_evel)):
+            batch = tuple(t.to(self.device) for t in batch)
+            inputs = {
+                "input_ids": batch[0],
+                "attention_mask": batch[1],
+                "token_type_ids": batch[2],
+                "start_positions": batch[3],
+                "end_positions": batch[4],
+            }
+            score = self.score(inputs)
+            score_list.append(score)
+        score = sum(score_list) / len(score_list) * 100
+        print('Epoch [{}/{}], score: {:.4f} %'.format(self.epochs, epoch + 1, score))

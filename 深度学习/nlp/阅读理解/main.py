@@ -1,4 +1,4 @@
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from transformers import BertModel, BertTokenizer
 import torch
 from transformers import squad_convert_examples_to_features
@@ -7,19 +7,24 @@ from transformers.data.processors.squad import SquadV2Processor
 tokenizer = BertTokenizer.from_pretrained('bert-base-chinese')
 
 
-def get_squad_dataset(data_dir, filename):
+def get_squad_dataset(data_dir, filename,
+                      max_seq_length=512,
+                      doc_stride=128,
+                      max_query_length=64,
+                      is_training=True,
+                      threads=8):
     processor = SquadV2Processor()
     examples = processor.get_train_examples(data_dir=data_dir, filename=filename)
 
     features, dataset = squad_convert_examples_to_features(
         examples=examples,
         tokenizer=tokenizer,
-        max_seq_length=512,
-        doc_stride=128,
-        max_query_length=64,
-        is_training=True,
+        max_seq_length=max_seq_length,
+        doc_stride=doc_stride,
+        max_query_length=max_query_length,
+        is_training=is_training,
         return_dataset="pt",
-        threads=8,  # 建议多线程比较快
+        threads=threads,  # 建议多线程比较快
     )
     return dataset
 
@@ -57,11 +62,17 @@ sys.path.append("..")
 from trainer import Trainer
 
 if __name__ == '__main__':
-    train_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="train.json")
-    dev_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="dev.json")
+    # train_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="train.json")
+    # dev_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="dev.json")
+    import pickle
+
+    # pickle.dump(train_dataset, open("train.pt", "wb"))
+    # pickle.dump(dev_dataset, open("dev.pt", "wb"))
+    train_dataset = pickle.load(open("train.pt", "rb"))
+    dev_dataset = pickle.load(open("dev.pt", "rb"))
     batch_size = 8
-    train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-    dev_dataloader = DataLoader(dataset=dev_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    dev_dataloader = DataLoader(dataset=dev_dataset, batch_size=batch_size, shuffle=True)
     model = MyBert()
     trainer = Trainer(model, epochs=10, lr=1e-4)
     trainer.train(dataset_train=train_dataloader, dataset_evel=dev_dataloader)
