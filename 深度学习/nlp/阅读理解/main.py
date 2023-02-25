@@ -76,3 +76,4 @@ if __name__ == '__main__':
     model = MyBert()
     trainer = Trainer(model, epochs=10, lr=1e-4)
     trainer.train(dataset_train=train_dataloader, dataset_evel=dev_dataloader)
+    

@@ -18,7 +18,7 @@ class Trainer(object):
         self.weight_decay = weight_decay
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
 
-    def train(self, dataset_train, dataset_evel=None):
+    def train(self, dataset_train, dataset_evel=None, score_metric=None):
         self.model.train()
         for epoch in range(self.epochs):
             for idx, batch in tqdm(enumerate(dataset_train), total=len(dataset_train)):
