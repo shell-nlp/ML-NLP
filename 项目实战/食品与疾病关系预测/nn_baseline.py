@@ -241,16 +241,16 @@ print(f"Recall score: {recall}")
 print(f"(F1+auc)/2: {(f1 + roc_auc) / 2}")
 
 # 测试推理
-# valid_set = NNDataset(test, disease2idx, train_mode=False)
-# valid_loader = DataLoader(valid_set, batch_size=512, shuffle=False)
-# pred_prob = []
-# with torch.no_grad():
-#     for (x1, x2, x3, x4, x5, y) in valid_loader:
-#         out = 0
-#         for model in model_list:
-#             out += model(x1.cuda(), x2.cuda(), x3.cuda(), x4.cuda(), x5.cuda()) / folds.n_splits
-#         pred_prob += out.squeeze(dim=-1).tolist()
-#
-# # 没有什么机智的后处理
-# test_sub['related_prob'] = [x + 0.2 for x in pred_prob]
-# test_sub.to_csv('/kaggle/working/nn_baseline.csv', index=False)
+valid_set = NNDataset(test, disease2idx, train_mode=False)
+valid_loader = DataLoader(valid_set, batch_size=512, shuffle=False)
+pred_prob = []
+with torch.no_grad():
+    for (x1, x2, x3, x4, x5, y) in valid_loader:
+        out = 0
+        for model in model_list:
+            out += model(x1.cuda(), x2.cuda(), x3.cuda(), x4.cuda(), x5.cuda()) / folds.n_splits
+        pred_prob += out.squeeze(dim=-1).tolist()
+
+# 没有什么机智的后处理
+test_sub['related_prob'] = [x + 0.2 for x in pred_prob]
+test_sub.to_csv('./submit/nn_baseline.csv', index=False)
