@@ -6,11 +6,16 @@ from sklearn.model_selection import StratifiedKFold as KFold
 from sklearn.decomposition import PCA
 from torch.utils.data import Dataset, DataLoader
 from torch.nn import DataParallel
+from transformers import set_seed
+
+seed = 520
+
+set_seed(seed)
 
 
 # 降维
 def 降维(feats, nfeats=64):
-    pca = PCA(n_components=nfeats, random_state=2023)
+    pca = PCA(n_components=nfeats, random_state=seed)
     new_feats = pca.fit_transform(feats)
 
     return new_feats
@@ -53,7 +58,8 @@ test = test_sub. \
 # 减少一下特征 N_x
 select_feats = ['food_id', 'disease_id', 'related']
 for col, value in zip(train.isna().describe().iloc[2].index[3:], train.isna().describe().iloc[2].values[3:]):
-    if value == True:
+    # 如果 value is true 表示 整个列中 na值最多   所以去掉value  is true  的值
+    if value:
         continue
     select_feats.append(col)
 
@@ -80,7 +86,7 @@ class NN_Baseline(nn.Module):
     def __init__(self):
         super(NN_Baseline, self).__init__()
         # 处理 disease_id
-        self.emb = nn.Embedding(407, 64)
+        self.emb = nn.Embedding(len(disease_ids), 64)
         # 处理 N_x
         self.fc_Nx = nn.Sequential(nn.Linear(69, 64), nn.ReLU())
         # 处理 F_x
@@ -152,7 +158,6 @@ def evaluate_accuracy(x1, x2, x3, x4, x5, y, net, criterion):
 # 五折一下
 folds = KFold(n_splits=5, shuffle=True, random_state=2023)
 predictions = np.zeros([len(test), ])
-
 for fold_, (trn_idx, val_idx) in enumerate(folds.split(train, train.related)):
     print("fold n°{}".format(fold_ + 1))
     trn_data = train.iloc[trn_idx].reset_index(drop=True)
