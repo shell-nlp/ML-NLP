@@ -1,6 +1,8 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 import jieba
-import numpy as np
+from transformers import BertTokenizer
+
+t = BertTokenizer.from_pretrained("bert-base-chinese")
 
 # 示例文本
 text = [
