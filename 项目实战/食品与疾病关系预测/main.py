@@ -10,7 +10,8 @@ def fc(batch):
     dis_feat1 = [item[1] for item in batch]
     dis_feat2 = [item[2] for item in batch]
     dis_feat3 = [item[3] for item in batch]
-    label = [item[4] for item in batch]
+    label = [int(item[4]) for item in batch]
+
     food_feat = torch.tensor(food_feat)
     dis_feat1 = torch.tensor(dis_feat1)
     dis_feat2 = torch.tensor(dis_feat2)
@@ -54,26 +55,36 @@ class MyModel(torch.nn.Module):
             nn.Dropout(0.3)
         )
 
-        def forward(food, feat1, feat2, feat3, label):
-            f = self.food(food)
-            f1 = self.food(feat1)
-            f2 = self.food(feat2)
-            f3 = self.food(feat3)
-            v = f + f1 + f2 + f3
-            loss_fct = nn.CrossEntropyLoss()
-            loss = loss_fct(v, label)
-            return {"loss": loss}
+    def forward(self, food, feat1, feat2, feat3, label):
+        f = self.food(food)
+        f1 = self.feat1(feat1)
+        f2 = self.feat2(feat2)
+        f3 = self.feat3(feat3)
+        v = f + f1 + f2 + f3
+        loss_fct = nn.CrossEntropyLoss()
+        loss = loss_fct(v, label)
+        return {"loss": loss}
 
+
+def eve():
+    pass
+
+
+from sklearn.model_selection import StratifiedKFold
+
+# kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=2023)
 
 if __name__ == '__main__':
     epochs = 10
-    train_dataloader = DataLoader(train_dataset, batch_size=3, shuffle=True, num_workers=1, collate_fn=fc)
-    model = MyModel()
-    optimizer = torch.optim.Adam(model.parameters(), lr=2e-5, weight_decay=0)
+    train_dataloader = DataLoader(train_dataset, batch_size=512, shuffle=True, num_workers=1, collate_fn=fc)
+    model = MyModel().cuda()
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=0)
     for epoch in range(epochs):
-        for batch in train_dataloader:
+        for i, batch in enumerate(train_dataloader):
+            batch = {k: v.cuda() for k, v in batch.items()}
             loss = model(**batch)["loss"]
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-            print(loss)
+            if i % 50 == 0:
+                print("epoch:{}  batch:{}  loss:{:.4}".format(epoch, i, loss.item()))
