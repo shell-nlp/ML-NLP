@@ -3,6 +3,7 @@ import torch
 # 构建数据集
 from torch.utils.data import DataLoader
 import torch.nn as nn
+import numpy as np
 
 
 def fc(batch):
@@ -51,8 +52,8 @@ class MyModel(torch.nn.Module):
         self.fc = torch.nn.Sequential(
             nn.Linear(768, 256),
             nn.ReLU(),
-            nn.Linear(256, 2),
-            nn.Dropout(0.3)
+            nn.Linear(256, 1),
+            nn.Sigmoid()
         )
 
     def forward(self, food, feat1, feat2, feat3, label):
@@ -61,25 +62,50 @@ class MyModel(torch.nn.Module):
         f2 = self.feat2(feat2)
         f3 = self.feat3(feat3)
         v = f + f1 + f2 + f3
-        loss_fct = nn.CrossEntropyLoss()
-        loss = loss_fct(v, label)
-        return {"loss": loss}
+        logits = self.fc(v)
+        loss_fct = nn.BCELoss()
+        logits = logits.squeeze(dim=-1)
+        loss = loss_fct(logits, label.float())
+        return {"loss": loss, "logits": logits}
 
 
-def eve():
-    pass
+from torch.utils.data import random_split
+from sklearn.metrics import f1_score, accuracy_score
 
 
-from sklearn.model_selection import StratifiedKFold
+def evel(model: nn.Module, dev_dataloader):
+    model.eval()
+    acc_list = []
+    f1_list = []
+    with torch.no_grad():
+        for i, batch in enumerate(dev_dataloader):
+            batch = {k: v.cuda() for k, v in batch.items()}
+            label = batch["label"]
+            logits = model(**batch)["logits"]
+            pre_idx = torch.ge(logits, 0.5)
+            pre_idx = np.array(pre_idx.cpu()).astype(int)
+            label = np.array(label.cpu()).astype(int)
+            acc = accuracy_score(label, pre_idx) * 100
+            f1 = f1_score(label, pre_idx) * 100
+            acc_list.append(acc)
+            f1_list.append(f1)
+        acc = np.mean(acc)
+        f1 = np.mean(f1)
+        return acc, f1
 
-# kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=2023)
 
 if __name__ == '__main__':
     epochs = 10
-    train_dataloader = DataLoader(train_dataset, batch_size=512, shuffle=True, num_workers=1, collate_fn=fc)
+    train_num = len(train_dataset)
+    train_sample = int(train_num * 0.8)
+    # 前0.8 数据   和 后 0.2 数据
+    train, dev = random_split(train_dataset, [train_sample, train_num - train_sample])
+    train_dataloader = DataLoader(train, batch_size=512, shuffle=True, num_workers=1, collate_fn=fc)
+    dev_dataloader = DataLoader(dev, batch_size=512, shuffle=True, num_workers=1, collate_fn=fc)
     model = MyModel().cuda()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=0)
     for epoch in range(epochs):
+        model.train()
         for i, batch in enumerate(train_dataloader):
             batch = {k: v.cuda() for k, v in batch.items()}
             loss = model(**batch)["loss"]
@@ -88,3 +114,5 @@ if __name__ == '__main__':
             optimizer.step()
             if i % 50 == 0:
                 print("epoch:{}  batch:{}  loss:{:.4}".format(epoch, i, loss.item()))
+        acc, f1 = evel(model, dev_dataloader)
+        print("epoch:{}  acc:{:.4}  f1:{:.4}".format(epoch, acc, f1))
