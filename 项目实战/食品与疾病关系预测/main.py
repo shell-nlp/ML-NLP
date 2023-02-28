@@ -77,7 +77,6 @@ from tqdm import tqdm
 
 def evel(model: nn.Module, dev_dataloader):
     model.eval()
-    acc_list = []
     f1_list = []
     auc_list = []
     with torch.no_grad():
@@ -125,5 +124,5 @@ if __name__ == '__main__':
         if score["res"] > max_sore:
             max_sore = score["res"]
             if epoch > 10:
-                print(f"最优模型已保存...  res:{max_sore}")
                 torch.save(model, f"./save/best_model_{max_sore}.pt")
+                print(f"最优模型已保存...  res:{max_sore}")
