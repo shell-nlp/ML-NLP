@@ -62,6 +62,7 @@ class MyModel(torch.nn.Module):
         f2 = self.feat2(feat2)
         f3 = self.feat3(feat3)
         v = f + f1 + f2 + f3
+        v = torch.dropout(v, p=0.3, train=self.training)
         logits = self.fc(v)
         loss_fct = nn.BCELoss()
         logits = logits.squeeze(dim=-1)
@@ -70,40 +71,44 @@ class MyModel(torch.nn.Module):
 
 
 from torch.utils.data import random_split
-from sklearn.metrics import f1_score, accuracy_score
+from sklearn.metrics import f1_score, accuracy_score, auc, roc_auc_score
+from tqdm import tqdm
 
 
 def evel(model: nn.Module, dev_dataloader):
     model.eval()
     acc_list = []
     f1_list = []
+    auc_list = []
     with torch.no_grad():
-        for i, batch in enumerate(dev_dataloader):
+        for i, batch in tqdm(enumerate(dev_dataloader), desc="评估中...", total=len(dev_dataloader)):
             batch = {k: v.cuda() for k, v in batch.items()}
             label = batch["label"]
-            logits = model(**batch)["logits"]
+            logits = model(**batch)["logits"] + 0.2
             pre_idx = torch.ge(logits, 0.5)
+            logits = np.array(logits.cpu())
             pre_idx = np.array(pre_idx.cpu()).astype(int)
             label = np.array(label.cpu()).astype(int)
-            acc = accuracy_score(label, pre_idx) * 100
             f1 = f1_score(label, pre_idx) * 100
-            acc_list.append(acc)
+            auc = roc_auc_score(label, logits)
             f1_list.append(f1)
-        acc = np.mean(acc)
-        f1 = np.mean(f1)
-        return acc, f1
+            auc_list.append(auc)
+        f1 = np.mean(f1_list)
+        auc = np.mean(auc_list)
+        res = (f1 + auc) / 2
+        return {"f1": f1, "auc": auc, "res": res}
 
 
 if __name__ == '__main__':
-    epochs = 10
+    epochs = 50
     train_num = len(train_dataset)
     train_sample = int(train_num * 0.8)
     # 前0.8 数据   和 后 0.2 数据
     train, dev = random_split(train_dataset, [train_sample, train_num - train_sample])
-    train_dataloader = DataLoader(train, batch_size=512, shuffle=True, num_workers=1, collate_fn=fc)
-    dev_dataloader = DataLoader(dev, batch_size=512, shuffle=True, num_workers=1, collate_fn=fc)
+    train_dataloader = DataLoader(train, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+    dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
     model = MyModel().cuda()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-5, weight_decay=0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
     for epoch in range(epochs):
         model.train()
         for i, batch in enumerate(train_dataloader):
@@ -114,5 +119,5 @@ if __name__ == '__main__':
             optimizer.step()
             if i % 50 == 0:
                 print("epoch:{}  batch:{}  loss:{:.4}".format(epoch, i, loss.item()))
-        acc, f1 = evel(model, dev_dataloader)
-        print("epoch:{}  acc:{:.4}  f1:{:.4}".format(epoch, acc, f1))
+        score = evel(model, dev_dataloader)
+        print(score)
