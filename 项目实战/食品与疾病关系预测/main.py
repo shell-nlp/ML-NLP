@@ -90,7 +90,7 @@ def evel(model: nn.Module, dev_dataloader):
             pre_idx = np.array(pre_idx.cpu()).astype(int)
             label = np.array(label.cpu()).astype(int)
             f1 = f1_score(label, pre_idx) * 100
-            auc = roc_auc_score(label, logits)
+            auc = roc_auc_score(label, logits) * 100
             f1_list.append(f1)
             auc_list.append(auc)
         f1 = np.mean(f1_list)
@@ -109,6 +109,7 @@ if __name__ == '__main__':
     dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
     model = MyModel().cuda()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
+    max_sore = 0
     for epoch in range(epochs):
         model.train()
         for i, batch in enumerate(train_dataloader):
@@ -121,3 +122,8 @@ if __name__ == '__main__':
                 print("epoch:{}  batch:{}  loss:{:.4}".format(epoch, i, loss.item()))
         score = evel(model, dev_dataloader)
         print(score)
+        if score["res"] > max_sore:
+            max_sore = score["res"]
+            if epoch > 10:
+                print(f"最优模型已保存...  res:{max_sore}")
+                torch.save(model, f"./save/best_model_{max_sore}.pt")
