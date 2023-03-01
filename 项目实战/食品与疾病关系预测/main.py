@@ -1,7 +1,7 @@
-from data_process import train_dataset, test_dataset
+from data_process import train_dataset
 import torch
 # 构建数据集
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 import torch.nn as nn
 import numpy as np
 
@@ -99,31 +99,49 @@ def evel(model: nn.Module, dev_dataloader):
         return {"f1": f1, "auc": auc, "res": res}
 
 
+from sklearn.model_selection import StratifiedKFold
+
 if __name__ == '__main__':
-    epochs = 100
-    train_num = len(train_dataset)
-    train_sample = int(train_num * 0.8)
-    # 前0.8 数据   和 后 0.2 数据
-    train, dev = random_split(train_dataset, [train_sample, train_num - train_sample])
-    train_dataloader = DataLoader(train, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
-    dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+    # 根据标签进行分层抽样
+    folds = 5
+    期望运行的轮次 = 50
+    epochs = 期望运行的轮次 // folds
+    max_sore = 0
+    skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     model = MyModel().cuda()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
-    max_sore = 0
-    for epoch in range(epochs):
-        model.train()
-        for i, batch in enumerate(train_dataloader):
-            batch = {k: v.cuda() for k, v in batch.items()}
-            loss = model(**batch)["loss"]
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            if i % 50 == 0:
-                print("epoch:{}  batch:{}  loss:{:.4}".format(epoch, i, loss.item()))
-        score = evel(model, dev_dataloader)
-        print(score)
-        if score["res"] > max_sore:
-            max_sore = score["res"]
-            if epoch >= 10:
-                torch.save(model, f"./save2/best_model_{max_sore}.pt")
-                print(f"最优模型已保存...  res:{max_sore}")
+    epoch = 0
+    iters = 0
+    for _ in range(epochs):
+        for fold, (train_idx, dev_idx) in enumerate(skf.split(X=train_dataset.data, y=train_dataset.target)):
+            epoch = epoch + 1
+            print(f'Fold {fold + 1}')
+            train = Subset(train_dataset, train_idx)
+            dev = Subset(train_dataset, dev_idx)
+            train_dataloader = DataLoader(train, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+            dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+
+            # # torch 拆分数据集
+            # train_num = len(train_dataset)
+            # train_sample = int(train_num * 0.8)
+            # # 前0.8 数据   和 后 0.2 数据
+            # train, dev = random_split(train_dataset, [train_sample, train_num - train_sample])
+            # train_dataloader = DataLoader(train, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+            # dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+            model.train()
+            for batch in train_dataloader:
+                batch = {k: v.cuda() for k, v in batch.items()}
+                loss = model(**batch)["loss"]
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+                if iters % 50 == 0:
+                    print("epoch:{}  batch:{}  loss:{:.4}".format(epoch, iters, loss.item()))
+                iters = iters + 1
+            score = evel(model, dev_dataloader)
+            print(score)
+            if score["res"] > max_sore:
+                max_sore = score["res"]
+                if epoch >= 10:
+                    torch.save(model, f"./save2/best_model_{max_sore}.pt")
+                    print(f"最优模型已保存...  res:{max_sore}")

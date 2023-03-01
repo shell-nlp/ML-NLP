@@ -79,6 +79,11 @@ class NNDataset(Dataset):
         super(NNDataset, self).__init__()
         self.train_mode = train_mode
         self.df = df
+        self.data = df.iloc[:, 3:]
+        if train_mode:
+            self.target = df["related"]
+        else:
+            self.target = df["related_prob"]
 
     def __len__(self):
         return len(self.df)
@@ -94,4 +99,4 @@ class NNDataset(Dataset):
 
 
 train_dataset = NNDataset(train)
-test_dataset = NNDataset(test)
+test_dataset = NNDataset(test, train_mode=False)
