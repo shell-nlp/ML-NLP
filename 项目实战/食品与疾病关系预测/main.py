@@ -28,29 +28,29 @@ class MyModel(torch.nn.Module):
         self.food = torch.nn.Sequential(
             nn.Linear(212, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.feat1 = torch.nn.Sequential(
             nn.Linear(128, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.feat2 = torch.nn.Sequential(
             nn.Linear(128, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.feat3 = torch.nn.Sequential(
             nn.Linear(128, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.fc = torch.nn.Sequential(
-            nn.Linear(768, 256),
+            nn.Linear(256 * 4, 256),
             nn.ReLU(),
             nn.Linear(256, 1),
             nn.Sigmoid()
@@ -62,6 +62,7 @@ class MyModel(torch.nn.Module):
         f2 = self.feat2(feat2)
         f3 = self.feat3(feat3)
         v = f + f1 + f2 + f3
+        v = torch.cat((f, f1, f2, f3), dim=-1)
         v = torch.dropout(v, p=0.3, train=self.training)
         logits = self.fc(v)
         loss_fct = nn.BCELoss()
@@ -83,7 +84,7 @@ def evel(model: nn.Module, dev_dataloader):
         for i, batch in tqdm(enumerate(dev_dataloader), desc="评估中...", total=len(dev_dataloader)):
             batch = {k: v.cuda() for k, v in batch.items()}
             label = batch["label"]
-            logits = model(**batch)["logits"] + 0.2
+            logits = model(**batch)["logits"]
             pre_idx = torch.ge(logits, 0.5)
             logits = np.array(logits.cpu())
             pre_idx = np.array(pre_idx.cpu()).astype(int)
@@ -99,7 +100,7 @@ def evel(model: nn.Module, dev_dataloader):
 
 
 if __name__ == '__main__':
-    epochs = 50
+    epochs = 100
     train_num = len(train_dataset)
     train_sample = int(train_num * 0.8)
     # 前0.8 数据   和 后 0.2 数据
@@ -123,6 +124,6 @@ if __name__ == '__main__':
         print(score)
         if score["res"] > max_sore:
             max_sore = score["res"]
-            if epoch > 10:
-                torch.save(model, f"./save/best_model_{max_sore}.pt")
+            if epoch >= 10:
+                torch.save(model, f"./save2/best_model_{max_sore}.pt")
                 print(f"最优模型已保存...  res:{max_sore}")

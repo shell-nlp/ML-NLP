@@ -25,19 +25,6 @@ from tqdm import tqdm
 import numpy as np
 import pandas as pd
 
-
-def submit(model: torch.nn.Module, test_dataloader):
-    test_sub = pd.read_csv('./data/初赛A榜测试集/preliminary_a_submit_sample.csv')
-    pred_prob = []
-    for i, batch in tqdm(enumerate(test_dataloader), desc="评估中...", total=len(test_dataloader)):
-        batch = {k: v.cuda() for k, v in batch.items()}
-        logits = model(**batch)["logits"] + 0.2
-        pred_prob = pred_prob + logits.tolist()
-    # 没有什么机智的后处理
-    test_sub['related_prob'] = pred_prob
-    test_sub.to_csv('./submit/test01.csv', index=False)
-
-
 import torch.nn as nn
 
 
@@ -47,29 +34,29 @@ class MyModel(torch.nn.Module):
         self.food = torch.nn.Sequential(
             nn.Linear(212, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.feat1 = torch.nn.Sequential(
             nn.Linear(128, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.feat2 = torch.nn.Sequential(
             nn.Linear(128, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.feat3 = torch.nn.Sequential(
             nn.Linear(128, 768),
             nn.ReLU(),
-            nn.Linear(768, 768),
+            nn.Linear(768, 256),
             nn.Dropout(0.3)
         )
         self.fc = torch.nn.Sequential(
-            nn.Linear(768, 256),
+            nn.Linear(256 * 4, 256),
             nn.ReLU(),
             nn.Linear(256, 1),
             nn.Sigmoid()
@@ -81,6 +68,7 @@ class MyModel(torch.nn.Module):
         f2 = self.feat2(feat2)
         f3 = self.feat3(feat3)
         v = f + f1 + f2 + f3
+        v = torch.cat((f, f1, f2, f3), dim=-1)
         v = torch.dropout(v, p=0.3, train=self.training)
         logits = self.fc(v)
         loss_fct = nn.BCELoss()
@@ -89,8 +77,20 @@ class MyModel(torch.nn.Module):
         return {"loss": loss, "logits": logits}
 
 
+def submit(model: torch.nn.Module, test_dataloader):
+    test_sub = pd.read_csv('./data/初赛A榜测试集/preliminary_a_submit_sample.csv')
+    pred_prob = []
+    for i, batch in tqdm(enumerate(test_dataloader), desc="评估中...", total=len(test_dataloader)):
+        batch = {k: v.cuda() for k, v in batch.items()}
+        logits = model(**batch)["logits"]
+        pred_prob = pred_prob + logits.tolist()
+    # 没有什么机智的后处理
+    test_sub['related_prob'] = pred_prob
+    test_sub.to_csv('./submit/test02.csv', index=False)
+
+
 if __name__ == '__main__':
-    path = "/home/zut/liuyu/code_dir/ml-nlp/项目实战/食品与疾病关系预测/save/best_model_86.04036045413973.pt"
+    path = "/home/zut/liuyu/code_dir/ml-nlp/项目实战/食品与疾病关系预测/save2/best_model_89.52567013438353.pt"
     model = torch.load(open(path, "rb"))
     test_dataloader = DataLoader(test_dataset, batch_size=256, num_workers=1, collate_fn=fc)
     model.eval()
