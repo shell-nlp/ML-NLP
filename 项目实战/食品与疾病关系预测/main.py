@@ -1,9 +1,11 @@
-from data_process import train_dataset
 import torch
-# 构建数据集
 from torch.utils.data import DataLoader, Subset
 import torch.nn as nn
 import numpy as np
+from sklearn.metrics import f1_score, roc_auc_score
+from tqdm import tqdm
+from sklearn.model_selection import StratifiedKFold
+from model import MyModel
 
 
 def fc(batch):
@@ -20,59 +22,6 @@ def fc(batch):
     label = torch.tensor(label)
 
     return {"food": food_feat, "feat1": dis_feat1, "feat2": dis_feat2, "feat3": dis_feat3, "label": label}
-
-
-class MyModel(torch.nn.Module):
-    def __init__(self):
-        super(MyModel, self).__init__()
-        self.food = torch.nn.Sequential(
-            nn.Linear(212, 768),
-            nn.ReLU(),
-            nn.Linear(768, 256),
-            nn.Dropout(0.3)
-        )
-        self.feat1 = torch.nn.Sequential(
-            nn.Linear(128, 768),
-            nn.ReLU(),
-            nn.Linear(768, 256),
-            nn.Dropout(0.3)
-        )
-        self.feat2 = torch.nn.Sequential(
-            nn.Linear(128, 768),
-            nn.ReLU(),
-            nn.Linear(768, 256),
-            nn.Dropout(0.3)
-        )
-        self.feat3 = torch.nn.Sequential(
-            nn.Linear(128, 768),
-            nn.ReLU(),
-            nn.Linear(768, 256),
-            nn.Dropout(0.3)
-        )
-        self.fc = torch.nn.Sequential(
-            nn.Linear(256 * 4, 256),
-            nn.ReLU(),
-            nn.Linear(256, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, food, feat1, feat2, feat3, label):
-        f = self.food(food)
-        f1 = self.feat1(feat1)
-        f2 = self.feat2(feat2)
-        f3 = self.feat3(feat3)
-        v = f + f1 + f2 + f3
-        v = torch.cat((f, f1, f2, f3), dim=-1)
-        v = torch.dropout(v, p=0.3, train=self.training)
-        logits = self.fc(v)
-        loss_fct = nn.BCELoss()
-        logits = logits.squeeze(dim=-1)
-        loss = loss_fct(logits, label.float())
-        return {"loss": loss, "logits": logits}
-
-
-from sklearn.metrics import f1_score, accuracy_score, auc, roc_auc_score
-from tqdm import tqdm
 
 
 def evel(model: nn.Module, dev_dataloader):
@@ -98,9 +47,11 @@ def evel(model: nn.Module, dev_dataloader):
         return {"f1": f1, "auc": auc, "res": res}
 
 
-from sklearn.model_selection import StratifiedKFold
+from data_process import NNDataset, get_data
 
 if __name__ == '__main__':
+    train, test = get_data()
+    train_dataset = NNDataset(train)
     # 根据标签进行分层抽样
     folds = 10
     期望运行的轮次 = 50
