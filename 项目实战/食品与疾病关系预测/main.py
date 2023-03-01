@@ -71,7 +71,6 @@ class MyModel(torch.nn.Module):
         return {"loss": loss, "logits": logits}
 
 
-from torch.utils.data import random_split
 from sklearn.metrics import f1_score, accuracy_score, auc, roc_auc_score
 from tqdm import tqdm
 
@@ -89,8 +88,8 @@ def evel(model: nn.Module, dev_dataloader):
             logits = np.array(logits.cpu())
             pre_idx = np.array(pre_idx.cpu()).astype(int)
             label = np.array(label.cpu()).astype(int)
-            f1 = f1_score(label, pre_idx, average="macro") * 100
-            auc = roc_auc_score(label, logits, average="macro") * 100
+            f1 = f1_score(label, pre_idx) * 100
+            auc = roc_auc_score(label, logits) * 100
             f1_list.append(f1)
             auc_list.append(auc)
         f1 = np.mean(f1_list)
@@ -103,7 +102,7 @@ from sklearn.model_selection import StratifiedKFold
 
 if __name__ == '__main__':
     # 根据标签进行分层抽样
-    folds = 5
+    folds = 10
     期望运行的轮次 = 50
     epochs = 期望运行的轮次 // folds
     max_sore = 0
