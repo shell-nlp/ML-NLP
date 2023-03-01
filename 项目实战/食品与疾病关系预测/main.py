@@ -89,8 +89,8 @@ def evel(model: nn.Module, dev_dataloader):
             logits = np.array(logits.cpu())
             pre_idx = np.array(pre_idx.cpu()).astype(int)
             label = np.array(label.cpu()).astype(int)
-            f1 = f1_score(label, pre_idx) * 100
-            auc = roc_auc_score(label, logits) * 100
+            f1 = f1_score(label, pre_idx, average="micro") * 100
+            auc = roc_auc_score(label, logits, average="micro") * 100
             f1_list.append(f1)
             auc_list.append(auc)
         f1 = np.mean(f1_list)
