@@ -84,6 +84,3 @@ class NNDataset(Dataset):
         dis_feat3 = sample[3 + 212 + 128 * 2:].astype(np.float32)
         label = np.array(sample[2], dtype=np.float32)
         return food_feat, dis_feat1, dis_feat2, dis_feat3, label
-
-
-

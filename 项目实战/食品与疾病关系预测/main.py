@@ -54,12 +54,13 @@ if __name__ == '__main__':
     train_dataset = NNDataset(train)
     # 根据标签进行分层抽样
     folds = 10
-    期望运行的轮次 = 50
+    期望运行的轮次 = 100
+    batch_size = 1024
     epochs = 期望运行的轮次 // folds
     max_sore = 0
     skf = StratifiedKFold(n_splits=folds, shuffle=True, random_state=42)
     model = MyModel().cuda()
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
     epoch = 0
     iters = 0
     for _ in range(epochs):
@@ -68,8 +69,8 @@ if __name__ == '__main__':
             print(f'Fold {fold + 1}')
             train = Subset(train_dataset, train_idx)
             dev = Subset(train_dataset, dev_idx)
-            train_dataloader = DataLoader(train, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
-            dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
+            train_dataloader = DataLoader(train, batch_size=batch_size, shuffle=True, num_workers=1, collate_fn=fc)
+            dev_dataloader = DataLoader(dev, batch_size=batch_size, shuffle=True, num_workers=1, collate_fn=fc)
 
             # # torch 拆分数据集
             # train_num = len(train_dataset)
@@ -80,7 +81,7 @@ if __name__ == '__main__':
             # dev_dataloader = DataLoader(dev, batch_size=256, shuffle=True, num_workers=1, collate_fn=fc)
             model.train()
             for batch in train_dataloader:
-                batch = {k: v.cuda() for k, v in batch.items()}
+                batch = {k: v.cuda() for k, v in batch.items()}  # 放入cuda
                 loss = model(**batch)["loss"]
                 optimizer.zero_grad()
                 loss.backward()
