@@ -13,7 +13,7 @@ SAVE_PATH = 'model'
 
 cat_feats = []
 
-DATA_PATH = 'data'
+DATA_PATH = '../data'
 train_food = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_food.csv'))
 train_answer = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_answer.csv'))
 disease_feature1 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature1.csv'))

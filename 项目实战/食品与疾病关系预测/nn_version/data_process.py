@@ -1,11 +1,7 @@
 import numpy as np
 import pandas as pd
-from sklearn.metrics import roc_curve, auc
-from sklearn.metrics import f1_score, fbeta_score, precision_score, recall_score, roc_auc_score
-from sklearn.model_selection import StratifiedKFold as KFold
 from sklearn.decomposition import PCA
-from torch.utils.data import Dataset, DataLoader
-from torch.nn import DataParallel
+from torch.utils.data import Dataset
 from transformers import set_seed
 
 seed = 520
@@ -23,9 +19,9 @@ def 降维(feats, nfeats=64):
 
 def get_data():
     #                                                                   n_sample   feature
-    disease_feature1 = pd.read_csv('data/训练集/disease_feature1.csv')  # 220      997
-    disease_feature2 = pd.read_csv('data/训练集/disease_feature2.csv')  # 301      318
-    disease_feature3 = pd.read_csv('data/训练集/disease_feature3.csv')  # 392      1454
+    disease_feature1 = pd.read_csv('../data/训练集/disease_feature1.csv')  # 220      997
+    disease_feature2 = pd.read_csv('../data/训练集/disease_feature2.csv')  # 301      318
+    disease_feature3 = pd.read_csv('../data/训练集/disease_feature3.csv')  # 392      1454
     # 降维可以使用其他方式  暂时使用PCA
     new_feat1 = 降维(disease_feature1.iloc[:, 1:], nfeats=128)
     new_feat2 = 降维(disease_feature2.iloc[:, 1:], nfeats=128)
@@ -41,10 +37,10 @@ def get_data():
     feat3['disease_id'] = disease_feature3.disease_id
 
     # 数据读取
-    test_food = pd.read_csv('data/初赛A榜测试集/preliminary_a_food.csv')  # 212
-    test_sub = pd.read_csv('data/初赛A榜测试集/preliminary_a_submit_sample.csv')
-    train_food = pd.read_csv('data/训练集/train_food.csv')  # 食物特征    212
-    train_answer = pd.read_csv('data/训练集/train_answer.csv')  # 食物和疾病关系
+    test_food = pd.read_csv('../data/初赛A榜测试集/preliminary_a_food.csv')  # 212
+    test_sub = pd.read_csv('../data/初赛A榜测试集/preliminary_a_submit_sample.csv')
+    train_food = pd.read_csv('../data/训练集/train_food.csv')  # 食物特征    212
+    train_answer = pd.read_csv('../data/训练集/train_answer.csv')  # 食物和疾病关系
     # 只需要找 train_answer中对于的标签  所以都用  left
     train = train_answer. \
         merge(train_food, on='food_id', how='left'). \
@@ -84,3 +80,7 @@ class NNDataset(Dataset):
         dis_feat3 = sample[3 + 212 + 128 * 2:].astype(np.float32)
         label = np.array(sample[2], dtype=np.float32)
         return food_feat, dis_feat1, dis_feat2, dis_feat3, label
+
+
+if __name__ == '__main__':
+    get_data()
