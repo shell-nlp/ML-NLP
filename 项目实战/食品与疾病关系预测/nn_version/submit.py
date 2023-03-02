@@ -26,7 +26,7 @@ from model import MyModel
 
 
 def submit(model: torch.nn.Module, test_dataloader):
-    test_sub = pd.read_csv('./data/初赛A榜测试集/preliminary_a_submit_sample.csv')
+    test_sub = pd.read_csv('data/初赛A榜测试集/preliminary_a_submit_sample.csv')
     pred_prob = []
     for i, batch in tqdm(enumerate(test_dataloader), desc="评估中...", total=len(test_dataloader)):
         batch = {k: v.cuda() for k, v in batch.items()}
