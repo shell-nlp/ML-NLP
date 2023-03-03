@@ -17,7 +17,7 @@ params = {
     "num_class": 3,
     "metric": ["multi_logloss"],
     "learning_rate": 0.1,
-    "num_boost_round": 50,
+    "num_boost_round": 20,
     "verbose": -1
 }
 # 100轮次
@@ -25,9 +25,10 @@ es = lgb.early_stopping(stopping_rounds=10)  # 如果验证集损失在10个iter
 eval_result = {}  # 用于存储评估结果的字典
 re = lgb.record_evaluation(eval_result)  # 记录评估结果到字典中
 model = lgb.train(params=params, train_set=train_data, valid_sets=[test_data],
-                  callbacks=[es, re])
+                  callbacks=[es, re], num_boost_round=60)
+model.save_model('model.txt', num_iteration=model.best_iteration)
 # 预测测试集并计算准确率
-y_pred = model.predict(X_test)  # 得到每个样本属于每个类别的概率矩阵
+y_pred = model.predict(X_test, num_iteration=model.best_iteration)  # 得到每个样本属于每个类别的概率矩阵
 y_pred = np.argmax(y_pred, axis=1)  # 取概率最大的类别作为预测结果
 acc = accuracy_score(y_test, y_pred)  # 计算准确率
 # 打印结果
