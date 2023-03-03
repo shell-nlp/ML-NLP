@@ -1,9 +1,6 @@
-import os, copy
+import os
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.decomposition import TruncatedSVD
-from tqdm.notebook import tqdm
 from sklearn.metrics import roc_auc_score, f1_score, recall_score, precision_score, precision_recall_curve
 import lightgbm as lgb
 from sklearn.model_selection import StratifiedKFold, KFold, StratifiedGroupKFold
@@ -146,7 +143,6 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
     )
     model = lgb.train(task_params, train, valid_sets=[train, val], num_boost_round=10000,
                       callbacks=[lgb.early_stopping(2000), lgb.log_evaluation(5000)])
-
     train_oof[val_idx] += (model.predict(train_x.loc[val_idx]))
     test_pred += (model.predict(testA_x)) / fold_num
     importance += model.feature_importance(importance_type='gain') / fold_num
