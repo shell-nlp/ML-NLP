@@ -114,9 +114,9 @@ lgb_params = {
     'bagging_fraction': 0.8,
     'bagging_freq': 5,
     'learning_rate': 0.01,
-    'n_jobs': 4,
+    'n_jobs': 6,
     'verbose': -1,
-    "device_type": "cuda",
+    "device_type": "cpu",
     'feature_fraction_seed': SEED,
     'bagging_seed': SEED,
     'seed': SEED,
@@ -168,17 +168,17 @@ def prob_post_processing(train_oof, test_pred, threshold):
 def Find_Optimal_Cutoff_F1(y, prob, verbose=False):
     precision, recall, threshold = precision_recall_curve(y, prob)
     y = 2 * (precision * recall) / (precision + recall)
-    Youden_index = np.argmax(y)
+    Youden_index = np.argmax(y)  # 得到f1最好 情况下的阈值
     optimal_threshold = threshold[Youden_index]
     if verbose: print("optimal_threshold", optimal_threshold)
     return optimal_threshold
 
 
-# ----------结果处理------------------
+# -----------结果处理------------------
 optimal_threshold = test_pred[test_pred.argsort()][-4572]
 print('test thres', optimal_threshold)
 train_oof, test_pred = prob_post_processing(train_oof, test_pred, optimal_threshold)
-optimal_threshold = Find_Optimal_Cutoff_F1(train_y, train_oof, verbose=True)
+optimal_threshold = Find_Optimal_Cutoff_F1(train_y, train_oof, verbose=True)  # 得到最优的阈值
 y_pred = (train_oof >= optimal_threshold).astype(int)
 y_true = train_y
 
