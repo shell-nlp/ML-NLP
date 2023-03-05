@@ -3,22 +3,24 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score, f1_score, recall_score, precision_score, precision_recall_curve
 import lightgbm as lgb
-from sklearn.model_selection import StratifiedKFold, KFold, StratifiedGroupKFold
+from sklearn.model_selection import StratifiedKFold
 
-SEED = 2023
+SEED = 520
 SAVE_PATH = 'model'
 
 cat_feats = []
 
 DATA_PATH = '../data'
-train_food = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_food.csv'))
-train_answer = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_answer.csv'))
+train_food = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_food.csv'))  # 事物特征
+train_answer = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_answer.csv'))  # 关系
+# 加载三个疾病特征
 disease_feature1 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature1.csv'))
 disease_feature2 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature2.csv'))
 disease_feature3 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature3.csv'))
-
+# ----------------------------------------加载测试数据集------开始-------------------------------------
 testA_food = pd.read_csv(os.path.join(DATA_PATH, '初赛A榜测试集', 'preliminary_a_food.csv'))
 testA_submit = pd.read_csv(os.path.join(DATA_PATH, '初赛A榜测试集', 'preliminary_a_submit_sample.csv'))
+# ----------------------------------------加载测试数据集------结束-------------------------------------
 
 print(f'train_food: {train_food.shape}')
 print(f'train_answer: {train_answer.shape}')
@@ -31,15 +33,18 @@ print(f'testA_submit: {testA_submit.shape}')
 print()
 print(f'train disease num: {train_answer.disease_id.nunique()}')
 print(f'train food num: {train_answer.food_id.nunique()}')
+# 排除 食物id  得到食物特征
 food_feats = [item for item in train_food.columns if item not in ['food_id']]
-tmp = train_food[food_feats].isna().sum()
-food_feats = tmp[tmp < 250].index.tolist()
 
-train_food = train_food[['food_id'] + food_feats]
+tmp = train_food[food_feats].isna().sum()  # 统计 每个特征有多少个空的
+food_feats = tmp[tmp < 346].index.tolist()  # 总特征212   75% 155
+train_food = train_food[['food_id'] + food_feats]  # 重构新的food 特征
 train_answer = train_answer.merge(train_food, on='food_id', how='left')
 
 testA_food = testA_food[['food_id'] + food_feats]
+
 testA_submit = testA_submit.merge(testA_food, on='food_id', how='left')
+
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
@@ -58,7 +63,7 @@ def tsvd(data, feats, n_components=10, name='tsvd', load=False):
     return deal_data
 
 
-n_disease_tsvd = 100
+n_disease_tsvd = 128
 disease_feature3 = tsvd(
     disease_feature3,
     [item for item in disease_feature3.columns if item not in ['disease_id']],
@@ -100,18 +105,18 @@ lgb_params = {
     'objective': 'binary',  # mse mape
     'metric': ['auc', 'binary_logloss'],
     # 'max_depth': 6,
-    'num_leaves': 2 ** 4,
+    'num_leaves': 2 ** 5,
     # 'num_leaves': 31,
     # 'min_data_in_leaf': 50,
     'lambda_l1': 0.5,
-    'lambda_l2': 0.5,
+    'lambda_l2': 0.5,  # TODO
     'feature_fraction': 0.8,
     'bagging_fraction': 0.8,
     'bagging_freq': 5,
     'learning_rate': 0.01,
-    'n_jobs': -1,
+    'n_jobs': 4,
     'verbose': -1,
-    "device_type": "cpu",
+    "device_type": "cuda",
     'feature_fraction_seed': SEED,
     'bagging_seed': SEED,
     'seed': SEED,
@@ -126,7 +131,7 @@ task_params = {"lgb": lgb_params}[task_name]
 
 train_oof = np.zeros(len(train_y))
 test_pred = np.zeros(len(testA_x))
-fold_num = 5
+fold_num = 7
 importance = 0
 kf = StratifiedKFold(n_splits=fold_num, shuffle=True, random_state=SEED)
 for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
@@ -143,8 +148,9 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
     )
     model = lgb.train(task_params, train, valid_sets=[train, val], num_boost_round=10000,
                       callbacks=[lgb.early_stopping(2000), lgb.log_evaluation(5000)])
-    train_oof[val_idx] += (model.predict(train_x.loc[val_idx]))
-    test_pred += (model.predict(testA_x)) / fold_num
+    best_iteration = model.best_iteration
+    train_oof[val_idx] += (model.predict(train_x.loc[val_idx], num_iteration=best_iteration))
+    test_pred += (model.predict(testA_x, num_iteration=best_iteration)) / fold_num
     importance += model.feature_importance(importance_type='gain') / fold_num
 
 feats_importance = pd.DataFrame()
@@ -168,6 +174,7 @@ def Find_Optimal_Cutoff_F1(y, prob, verbose=False):
     return optimal_threshold
 
 
+# ----------结果处理------------------
 optimal_threshold = test_pred[test_pred.argsort()][-4572]
 print('test thres', optimal_threshold)
 train_oof, test_pred = prob_post_processing(train_oof, test_pred, optimal_threshold)
