@@ -63,7 +63,7 @@ def tsvd(data, feats, n_components=10, name='tsvd', load=False):
     return deal_data
 
 
-n_disease_tsvd = 128
+n_disease_tsvd = 80
 disease_feature3 = tsvd(
     disease_feature3,
     [item for item in disease_feature3.columns if item not in ['disease_id']],
@@ -175,7 +175,7 @@ def Find_Optimal_Cutoff_F1(y, prob, verbose=False):
 
 
 # -----------结果处理------------------
-optimal_threshold = test_pred[test_pred.argsort()][-4572]
+optimal_threshold = test_pred[test_pred.argsort()][-4655]
 print('test thres', optimal_threshold)
 train_oof, test_pred = prob_post_processing(train_oof, test_pred, optimal_threshold)
 optimal_threshold = Find_Optimal_Cutoff_F1(train_y, train_oof, verbose=True)  # 得到最优的阈值
