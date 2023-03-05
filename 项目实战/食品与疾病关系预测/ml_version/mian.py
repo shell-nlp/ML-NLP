@@ -131,7 +131,7 @@ task_params = {"lgb": lgb_params}[task_name]
 
 train_oof = np.zeros(len(train_y))
 test_pred = np.zeros(len(testA_x))
-fold_num = 7
+fold_num = 5
 importance = 0
 kf = StratifiedKFold(n_splits=fold_num, shuffle=True, random_state=SEED)
 for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
