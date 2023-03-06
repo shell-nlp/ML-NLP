@@ -39,6 +39,7 @@ food_feats = [item for item in train_food.columns if item not in ['food_id']]
 tmp = train_food[food_feats].isna().sum()  # 统计 每个特征有多少个空的
 food_feats = tmp[tmp < 346].index.tolist()  # 总特征212   75% 155
 train_food = train_food[['food_id'] + food_feats]  # 重构新的food 特征
+
 train_answer = train_answer.merge(train_food, on='food_id', how='left')
 
 testA_food = testA_food[['food_id'] + food_feats]
@@ -94,6 +95,9 @@ disease_feature1 = tsvd(
 train_answer = train_answer.merge(disease_feature1, on='disease_id', how='left')
 testA_submit = testA_submit.merge(disease_feature1, on='disease_id', how='left')
 
+train_answer.fillna(0, inplace=True)  # 填充0 代表特征不重要
+testA_submit.fillna(0, inplace=True)
+
 train_answer['disease_id_lbl'] = train_answer['disease_id'].apply(lambda x: int(x.split('_')[-1]))
 testA_submit['disease_id_lbl'] = testA_submit['disease_id'].apply(lambda x: int(x.split('_')[-1]))
 cat_feats += ['disease_id_lbl']
@@ -101,11 +105,11 @@ train_answer['disease_id_lbl'].nunique(), testA_submit['disease_id_lbl'].nunique
 feats = [item for item in train_answer.columns if item not in ['food_id', 'disease_id', 'related']]
 print(cat_feats)
 lgb_params = {
-    'boosting_type': 'gbdt',
+    'boosting_type': 'dart',
     'objective': 'binary',  # mse mape
     'metric': ['auc', 'binary_logloss'],
     # 'max_depth': 6,
-    'num_leaves': 2 ** 5,
+    'num_leaves': 2 ** 7,
     # 'num_leaves': 31,
     # 'min_data_in_leaf': 50,
     'lambda_l1': 0.5,
