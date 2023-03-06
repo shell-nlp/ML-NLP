@@ -112,12 +112,12 @@ lgb_params = {
     'num_leaves': 2 ** 7,
     # 'num_leaves': 31,
     # 'min_data_in_leaf': 50,
-    'lambda_l1': 0.5,
-    'lambda_l2': 0.5,  # TODO
+    'lambda_l1': 0.1,
+    'lambda_l2': 0.1,  # TODO
     'feature_fraction': 0.8,
     'bagging_fraction': 0.8,
     'bagging_freq': 5,
-    'learning_rate': 0.01,
+    'learning_rate': 0.1,
     'n_jobs': 6,
     'verbose': -1,
     "device_type": "cpu",
