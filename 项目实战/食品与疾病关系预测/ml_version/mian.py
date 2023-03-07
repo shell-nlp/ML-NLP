@@ -53,9 +53,10 @@ from sklearn.decomposition import PCA
 
 def tsvd(data, feats, n_components=10, name='tsvd', load=False):
     tsvd = Pipeline([
-        ('std', StandardScaler()),
+        ('std1', StandardScaler()),
         # ('tsvd', TruncatedSVD(n_components=n_components, n_iter=1000, random_state=SEED)),
-        ('pca', PCA(n_components=n_components, random_state=SEED))
+        ('pca', PCA(n_components=n_components, random_state=SEED)),
+        ('std2', StandardScaler()),
     ])
     tsvd.fit(data[feats])
     data_id = data['disease_id']
@@ -105,11 +106,11 @@ train_answer['disease_id_lbl'].nunique(), testA_submit['disease_id_lbl'].nunique
 feats = [item for item in train_answer.columns if item not in ['food_id', 'disease_id', 'related']]
 print(cat_feats)
 lgb_params = {
-    'boosting_type': 'dart',
+    'boosting_type': 'dart',  # dart  gbdt rf
     'objective': 'binary',  # mse mape
     'metric': ['auc', 'binary_logloss'],
     # 'max_depth': 6,
-    'num_leaves': 2 ** 7,
+    'num_leaves': (2 ** 7) + 20,
     # 'num_leaves': 31,
     # 'min_data_in_leaf': 50,
     'lambda_l1': 0.1,
@@ -117,7 +118,7 @@ lgb_params = {
     'feature_fraction': 0.8,
     'bagging_fraction': 0.8,
     'bagging_freq': 5,
-    'learning_rate': 0.1,
+    'learning_rate': 0.2,
     'n_jobs': 6,
     'verbose': -1,
     "device_type": "cpu",
@@ -150,7 +151,7 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
         train_y.loc[val_idx],
         categorical_feature=cat_feats
     )
-    model = lgb.train(task_params, train, valid_sets=[train, val], num_boost_round=10000,
+    model = lgb.train(task_params, train, valid_sets=[train, val], num_boost_round=15000,
                       callbacks=[lgb.early_stopping(2000), lgb.log_evaluation(5000)])
     best_iteration = model.best_iteration
     train_oof[val_idx] += (model.predict(train_x.loc[val_idx], num_iteration=best_iteration))
