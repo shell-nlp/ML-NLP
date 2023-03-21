@@ -1,3 +1,6 @@
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
 import os
 import pandas as pd
 import numpy as np
@@ -11,15 +14,22 @@ SAVE_PATH = 'model'
 cat_feats = []
 
 DATA_PATH = '../data'
-train_food = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_food.csv'))  # 事物特征
-train_answer = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'train_answer.csv'))  # 关系
+train_food = pd.read_csv(os.path.join(
+    DATA_PATH, '训练集', 'train_food.csv'))  # 事物特征
+train_answer = pd.read_csv(os.path.join(
+    DATA_PATH, '训练集', 'train_answer.csv'))  # 关系
 # 加载三个疾病特征
-disease_feature1 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature1.csv'))
-disease_feature2 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature2.csv'))
-disease_feature3 = pd.read_csv(os.path.join(DATA_PATH, '训练集', 'disease_feature3.csv'))
+disease_feature1 = pd.read_csv(os.path.join(
+    DATA_PATH, '训练集', 'disease_feature1.csv'))
+disease_feature2 = pd.read_csv(os.path.join(
+    DATA_PATH, '训练集', 'disease_feature2.csv'))
+disease_feature3 = pd.read_csv(os.path.join(
+    DATA_PATH, '训练集', 'disease_feature3.csv'))
 # ----------------------------------------加载测试数据集------开始-------------------------------------
-testA_food = pd.read_csv(os.path.join(DATA_PATH, '初赛B榜测试集', 'preliminary_b_food.csv'))
-testA_submit = pd.read_csv(os.path.join(DATA_PATH, '初赛B榜测试集', 'preliminary_b_submit_sample.csv'))
+testA_food = pd.read_csv(os.path.join(
+    DATA_PATH, '初赛B榜测试集', 'preliminary_b_food.csv'))
+testA_submit = pd.read_csv(os.path.join(
+    DATA_PATH, '初赛B榜测试集', 'preliminary_b_submit_sample.csv'))
 # ----------------------------------------加载测试数据集------结束-------------------------------------
 
 print(f'train_food: {train_food.shape}')
@@ -46,10 +56,6 @@ testA_food = testA_food[['food_id'] + food_feats]
 
 testA_submit = testA_submit.merge(testA_food, on='food_id', how='left')
 
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-
 
 def tsvd(data, feats, n_components=10, name='tsvd', load=False):
     tsvd = Pipeline([
@@ -60,7 +66,8 @@ def tsvd(data, feats, n_components=10, name='tsvd', load=False):
     ])
     tsvd.fit(data[feats])
     data_id = data['disease_id']
-    deal_data = pd.DataFrame(tsvd.transform(data[feats]), columns=[f'{name}_{i}' for i in range(n_components)])
+    deal_data = pd.DataFrame(tsvd.transform(data[feats]), columns=[
+                             f'{name}_{i}' for i in range(n_components)])
     deal_data.insert(0, 'disease_id', data['disease_id'])
     return deal_data
 
@@ -73,8 +80,10 @@ disease_feature3 = tsvd(
     name='disease3_tsvd'
 )
 
-train_answer = train_answer.merge(disease_feature3, on='disease_id', how='left')
-testA_submit = testA_submit.merge(disease_feature3, on='disease_id', how='left')
+train_answer = train_answer.merge(
+    disease_feature3, on='disease_id', how='left')
+testA_submit = testA_submit.merge(
+    disease_feature3, on='disease_id', how='left')
 
 disease_feature2 = tsvd(
     disease_feature2,
@@ -83,8 +92,10 @@ disease_feature2 = tsvd(
     name='disease2_tsvd'
 )
 
-train_answer = train_answer.merge(disease_feature2, on='disease_id', how='left')
-testA_submit = testA_submit.merge(disease_feature2, on='disease_id', how='left')
+train_answer = train_answer.merge(
+    disease_feature2, on='disease_id', how='left')
+testA_submit = testA_submit.merge(
+    disease_feature2, on='disease_id', how='left')
 
 disease_feature1 = tsvd(
     disease_feature1,
@@ -93,17 +104,23 @@ disease_feature1 = tsvd(
     name='disease1_tsvd'
 )
 
-train_answer = train_answer.merge(disease_feature1, on='disease_id', how='left')
-testA_submit = testA_submit.merge(disease_feature1, on='disease_id', how='left')
+train_answer = train_answer.merge(
+    disease_feature1, on='disease_id', how='left')
+testA_submit = testA_submit.merge(
+    disease_feature1, on='disease_id', how='left')
 
 train_answer.fillna(0, inplace=True)  # 填充0 代表特征不重要
 testA_submit.fillna(0, inplace=True)
 
-train_answer['disease_id_lbl'] = train_answer['disease_id'].apply(lambda x: int(x.split('_')[-1]))
-testA_submit['disease_id_lbl'] = testA_submit['disease_id'].apply(lambda x: int(x.split('_')[-1]))
+train_answer['disease_id_lbl'] = train_answer['disease_id'].apply(
+    lambda x: int(x.split('_')[-1]))
+testA_submit['disease_id_lbl'] = testA_submit['disease_id'].apply(
+    lambda x: int(x.split('_')[-1]))
 cat_feats += ['disease_id_lbl']
-train_answer['disease_id_lbl'].nunique(), testA_submit['disease_id_lbl'].nunique()
-feats = [item for item in train_answer.columns if item not in ['food_id', 'disease_id', 'related']]
+train_answer['disease_id_lbl'].nunique(
+), testA_submit['disease_id_lbl'].nunique()
+feats = [item for item in train_answer.columns if item not in [
+    'food_id', 'disease_id', 'related']]
 print(cat_feats)
 lgb_params = {
     'boosting_type': 'dart',  # dart  gbdt rf
@@ -154,8 +171,10 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(train_x, train_y)):
     model = lgb.train(task_params, train, valid_sets=[train, val], num_boost_round=15000,
                       callbacks=[lgb.early_stopping(2000), lgb.log_evaluation(5000)])
     best_iteration = model.best_iteration
-    train_oof[val_idx] += (model.predict(train_x.loc[val_idx], num_iteration=best_iteration))
-    test_pred += (model.predict(testA_x, num_iteration=best_iteration)) / fold_num
+    train_oof[val_idx] += (model.predict(train_x.loc[val_idx],
+                           num_iteration=best_iteration))
+    test_pred += (model.predict(testA_x,
+                  num_iteration=best_iteration)) / fold_num
     importance += model.feature_importance(importance_type='gain') / fold_num
 
 feats_importance = pd.DataFrame()
@@ -175,15 +194,18 @@ def Find_Optimal_Cutoff_F1(y, prob, verbose=False):
     y = 2 * (precision * recall) / (precision + recall)
     Youden_index = np.argmax(y)  # 得到f1最好 情况下的阈值
     optimal_threshold = threshold[Youden_index]
-    if verbose: print("optimal_threshold", optimal_threshold)
+    if verbose:
+        print("optimal_threshold", optimal_threshold)
     return optimal_threshold
 
 
 # -----------结果处理------------------
 optimal_threshold = test_pred[test_pred.argsort()][-4655]
 print('test thres', optimal_threshold)
-train_oof, test_pred = prob_post_processing(train_oof, test_pred, optimal_threshold)
-optimal_threshold = Find_Optimal_Cutoff_F1(train_y, train_oof, verbose=True)  # 得到最优的阈值
+train_oof, test_pred = prob_post_processing(
+    train_oof, test_pred, optimal_threshold)
+optimal_threshold = Find_Optimal_Cutoff_F1(
+    train_y, train_oof, verbose=True)  # 得到最优的阈值
 y_pred = (train_oof >= optimal_threshold).astype(int)
 y_true = train_y
 
