@@ -1,11 +1,13 @@
 import re
 import os
 import json
+import numpy as np
 
 import torch
 from torch.utils.data import Dataset
 from transformers import BertTokenizer
 from tqdm import tqdm
+
 
 here = os.path.dirname(os.path.abspath(__file__))
 
@@ -13,7 +15,8 @@ here = os.path.dirname(os.path.abspath(__file__))
 class MyTokenizer(object):
     def __init__(self, pretrained_model_path=None, mask_entity=False):
         self.pretrained_model_path = pretrained_model_path or 'bert-base-chinese'
-        self.bert_tokenizer = BertTokenizer.from_pretrained(self.pretrained_model_path)
+        self.bert_tokenizer = BertTokenizer.from_pretrained(
+            self.pretrained_model_path)
         self.mask_entity = mask_entity
 
     def tokenize(self, item):
@@ -143,9 +146,11 @@ class SentenceREDataset(Dataset):
         self.data_file_path = data_file_path
         self.tagset_path = tagset_path
         self.pretrained_model_path = pretrained_model_path or 'bert-base-chinese'
-        self.tokenizer = MyTokenizer(pretrained_model_path=self.pretrained_model_path)
+        self.tokenizer = MyTokenizer(
+            pretrained_model_path=self.pretrained_model_path)
         self.max_len = max_len
-        self.tokens_list, self.e1_mask_list, self.e2_mask_list, self.tags = read_data(data_file_path, tokenizer=self.tokenizer, max_len=self.max_len)
+        self.tokens_list, self.e1_mask_list, self.e2_mask_list, self.tags = read_data(
+            data_file_path, tokenizer=self.tokenizer, max_len=self.max_len)
         self.tag2idx = get_tag2idx(self.tagset_path)
 
     def __len__(self):
@@ -158,10 +163,77 @@ class SentenceREDataset(Dataset):
         sample_e1_mask = self.e1_mask_list[idx]
         sample_e2_mask = self.e2_mask_list[idx]
         sample_tag = self.tags[idx]
-        encoded = self.tokenizer.bert_tokenizer.encode_plus(sample_tokens, max_length=self.max_len, pad_to_max_length=True)
+        encoded = self.tokenizer.bert_tokenizer.encode_plus(
+            sample_tokens, max_length=self.max_len, pad_to_max_length=True)
         sample_token_ids = encoded['input_ids']
         sample_token_type_ids = encoded['token_type_ids']
         sample_attention_mask = encoded['attention_mask']
+        sample_tag_id = self.tag2idx[sample_tag]
+
+        sample = {
+            'token_ids': torch.tensor(sample_token_ids),
+            'token_type_ids': torch.tensor(sample_token_type_ids),
+            'attention_mask': torch.tensor(sample_attention_mask),
+            'e1_mask': torch.tensor(sample_e1_mask),
+            'e2_mask': torch.tensor(sample_e2_mask),
+            'tag_id': torch.tensor(sample_tag_id)
+        }
+        return sample
+
+
+class My_SentenceREDataset(Dataset):
+    def __init__(self, data_file_path, tagset_path, pretrained_model_path=None, max_len=128):
+        from datasets import load_dataset, Dataset
+        from copy import deepcopy
+        self.data_file_path = data_file_path
+        self.tagset_path = tagset_path
+        self.pretrained_model_path = pretrained_model_path or 'bert-base-chinese'
+        self.bert_tokenizer: BertTokenizer = BertTokenizer.from_pretrained(
+            self.pretrained_model_path)
+        # 1.加载数据
+        data = Dataset.from_json(data_file_path)
+        # 2.处理数据
+
+        def f(batch):
+            # 获得 token_ids,en_mask ,tag_ids
+            # 1.token_ids
+            h_pos = batch["h"]["pos"]
+            t_pos = batch["t"]["pos"]
+            text = batch["text"]
+            tag = batch["relation"]
+            output = self.bert_tokenizer.encode_plus(text, max_length=max_len,truncation=True,padding="max_length")
+            def get_entity_mask(pos):
+                entity_mask = deepcopy(output["attention_mask"])
+                entity_mask[pos[0]+1:pos[1] +
+                            1] = [0 for _ in range((pos[1]-pos[0]))]
+                entity_mask = [0 if i == 1 else 1 for i in entity_mask]
+                return entity_mask
+            # en_mask ,tag_ids
+            entity1_mask = get_entity_mask(h_pos)
+            entity2_mask = get_entity_mask(t_pos)
+            output["e1_mask"] = entity1_mask
+            output["e2_mask"] = entity2_mask
+            output["tags"] = tag
+            return output
+
+        self.data = data.map(function=f, batched=False, remove_columns=[
+            "h", "t", "text", "relation"])
+
+        self.tag2idx = get_tag2idx(self.tagset_path)
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+
+        sample_tokens = self.data[idx]
+        sample_token_ids = sample_tokens["input_ids"]
+        sample_attention_mask = sample_tokens["attention_mask"]
+        sample_token_type_ids = sample_tokens["token_type_ids"]
+        sample_e1_mask = sample_tokens["e1_mask"]
+        sample_e2_mask = sample_tokens["e2_mask"]
+        sample_tag = sample_tokens["tags"]
+
         sample_tag_id = self.tag2idx[sample_tag]
 
         sample = {

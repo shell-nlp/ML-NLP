@@ -6,7 +6,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from sklearn import metrics
 
-from .data_utils import SentenceREDataset, get_idx2tag, load_checkpoint, save_checkpoint
+from .data_utils import My_SentenceREDataset, get_idx2tag, load_checkpoint, save_checkpoint
 from .model import SentenceRE
 
 here = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,7 @@ def train(hparams):
     weight_decay = hparams.weight_decay
 
     # train_dataset
-    train_dataset = SentenceREDataset(train_file, tagset_path=tagset_file,
+    train_dataset = My_SentenceREDataset(train_file, tagset_path=tagset_file,
                                       pretrained_model_path=pretrained_model_path,
                                       max_len=max_len)
     train_loader = DataLoader(train_dataset, batch_size=train_batch_size, shuffle=True)
@@ -83,7 +83,7 @@ def train(hparams):
                 running_loss = 0.0
 
         if validation_file:
-            validation_dataset = SentenceREDataset(validation_file, tagset_path=tagset_file,
+            validation_dataset = My_SentenceREDataset(validation_file, tagset_path=tagset_file,
                                                    pretrained_model_path=pretrained_model_path,
                                                    max_len=max_len)
             val_loader = DataLoader(validation_dataset, batch_size=validation_batch_size, shuffle=False)
