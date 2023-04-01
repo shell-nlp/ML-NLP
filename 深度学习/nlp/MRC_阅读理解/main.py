@@ -57,19 +57,23 @@ class MyBert(torch.nn.Module):
 
 
 import sys
+from os.path import dirname as rn
+import os
 
-sys.path.append("..")
-from trainer import Trainer
-
+path = rn(rn(rn(rn(__file__))))
+print(path)
+sys.path.append(path)
+from utils.trainer import Trainer
+from utils import Trainer
 if __name__ == '__main__':
-    # train_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="train.json")
-    # dev_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="dev.json")
+    train_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="train.json")
+    dev_dataset = get_squad_dataset(data_dir="./data/cmrc2018_public", filename="dev.json")
     import pickle
 
     # pickle.dump(train_dataset, open("train.pt", "wb"))
     # pickle.dump(dev_dataset, open("dev.pt", "wb"))
-    train_dataset = pickle.load(open("train.pt", "rb"))
-    dev_dataset = pickle.load(open("dev.pt", "rb"))
+    # train_dataset = pickle.load(open("train.pt", "rb"))
+    # dev_dataset = pickle.load(open("dev.pt", "rb"))
     batch_size = 8
     train_dataloader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
     dev_dataloader = DataLoader(dataset=dev_dataset, batch_size=batch_size, shuffle=True)

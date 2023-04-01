@@ -69,6 +69,4 @@ if __name__ == '__main__':
     model = BertForSequenceClassification.from_pretrained(check_point, num_labels=16)
 
 
-# train
-# # 'dac_predictions.npy'
-train(model, data_loader, dev_loader, test_loader, args)
+    train(model, data_loader, dev_loader, test_loader, args)
