@@ -1,3 +1,4 @@
+from sklearn.feature_extraction.text import TfidfVectorizer
 import math
 from collections import Counter, defaultdict
 
@@ -55,8 +56,6 @@ def text_tfidf(docs):
         tfidf_list.append(compute_tfidf(tf, idf))
     return tfidf_list
 
-
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 if __name__ == '__main__':
 
