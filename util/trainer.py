@@ -15,6 +15,7 @@ class Train(object):
         self.model.to(self.device)
         self.epochs = epochs
         self.cur_epoch = 0
+        self.cur_batch = 0
         self.lr = lr
         self.show_batch = show_batch
         self.weight_decay = weight_decay
@@ -23,20 +24,31 @@ class Train(object):
         self.compute_metrics = compute_metrics
 
     def train(self, dataset_train, dataset_eval=None):
+        # total=len(dataset_train), desc='Training')
+        bar = tqdm(total=len(dataset_train)*self.epochs, position=0)
         for _ in range(self.epochs):
             self.cur_epoch = self.cur_epoch + 1
             self.model.train()
-            for idx, batch in tqdm(enumerate(dataset_train), total=len(dataset_train), desc='Training'):
+            for _, batch in enumerate(dataset_train):
+                self.cur_batch = self.cur_batch + 1
                 batch = {k: v.to(self.device) for k, v in batch.items()}
                 outputs = self.model(**batch)
                 loss = outputs["loss"]
                 self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
-                if idx % self.show_batch == 0:
-                    print(
-                        'Epoch [{}/{}],batch:{} Loss: {:.4f}'.format(self.epochs, self.cur_epoch, idx, loss.item()))
-            self.evaluation(dataset_eval)
+                if self.cur_batch % self.show_batch == 0:
+                    print(self.cur_batch)
+                    print_str = '\nEpoch [{}/{}],batch:{} Loss: {:.4f}'.format(
+                        self.epochs, self.cur_epoch, self.cur_batch, loss.item())
+                    bar.set_description(print_str)
+                    bar.update(self.show_batch)  # 更新进度
+
+                    bar.refresh()  # 立即显示进度条更新结果
+                # print(
+                #     '\nEpoch [{}/{}],batch:{} Loss: {:.4f}'.format(self.epochs, self.cur_epoch, idx, loss.item()))
+            if dataset_eval:
+                self.evaluation(dataset_eval)
 
     @torch.no_grad()
     def evaluation(self, dataset_eval):

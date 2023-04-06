@@ -1,26 +1,17 @@
+import os
+import sys
 import time
 import torch
-# import numpy as np
-# from train_eval import train, init_network
 from importlib import import_module
 import argparse
 from utils import get_time_dif
 from transformers import set_seed, BertTokenizerFast
 from transformers import BertForSequenceClassification
 from datasets import Dataset
-from train_eval import train
-parser = argparse.ArgumentParser(description='Chinese Text Classification')
-parser.add_argument('--model', type=str, default="Bert",
-                    help='choose a model: Bert, ERNIE')
-parser.add_argument('--save_path', type=str, default="",
-                    help='the save path of predictions on test set')
-args = parser.parse_args()
-print(args)
-
 
 if __name__ == '__main__':
-
-    model_name = args.model  # bert
+    sys.path.append(os.getcwd())
+    model_name = "Bert"  # bert
     task = "医疗诊疗对话意图识别挑战赛"
     print(model_name)
     set_seed(1)
@@ -31,7 +22,8 @@ if __name__ == '__main__':
     train_path = "项目实战/医疗诊疗对话意图识别挑战赛/BERT-DAC/data/process_data/train.txt"
     dev_path = "项目实战/医疗诊疗对话意图识别挑战赛/BERT-DAC/data/process_data/dev.txt"
     test_path = "项目实战/医疗诊疗对话意图识别挑战赛/BERT-DAC/data/process_data/test.txt"
-    train_ = Dataset.from_csv(train_path, sep="\t", names=["context", 'labels'])
+    train_ = Dataset.from_csv(train_path, sep="\t",
+                              names=["context", 'labels'])
     dev = Dataset.from_csv(dev_path, sep="\t", names=["context", 'labels'])
     test = Dataset.from_csv(test_path, sep="\t", names=["context"])
     tokenizer = BertTokenizerFast.from_pretrained(check_point)
@@ -59,14 +51,21 @@ if __name__ == '__main__':
     data_collator = DataCollatorWithPadding(tokenizer)
     from sklearn import metrics
     from torch.utils.data import DataLoader
-    data_loader = DataLoader(train_data, batch_size=64,
+    train_loader = DataLoader(train_data, batch_size=64,
                              collate_fn=data_collator, pin_memory=True)
     dev_loader = DataLoader(dev_data, batch_size=64,
-                             collate_fn=data_collator, pin_memory=True)
+                            collate_fn=data_collator, pin_memory=True)
     test_loader = DataLoader(test_data, batch_size=64,
                              collate_fn=data_collator, pin_memory=True)
-    
-    model = BertForSequenceClassification.from_pretrained(check_point, num_labels=16)
 
+    model = BertForSequenceClassification.from_pretrained(
+        check_point, num_labels=16)
+   
+    from util.trainer import Train
 
-    train(model, data_loader, dev_loader, test_loader, args)
+    def compute_metrics():
+        pass
+    trainer = Train(model=model, epochs=20, lr=2e-5, weight_decay=0,
+                    show_batch=50, use_cuda=True,
+                    compute_metrics=compute_metrics)
+    trainer.train(dataset_train=train_loader)
