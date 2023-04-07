@@ -1,5 +1,5 @@
+from transformers import get_linear_schedule_with_warmup
 import os
-import sys
 import torch.nn as nn
 import torch
 from sklearn.model_selection import StratifiedKFold, KFold
@@ -27,7 +27,17 @@ class Train(object):
             self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         self.compute_metrics = compute_metrics
 
-    def train(self, dataset_train, dataset_eval=None):
+    def train(self, dataset_train, dataset_eval=None, num_warmup=1000):
+        # 学习率衰减
+        if 0 < num_warmup <= 1:
+            num_warmup_steps = int(self.epochs*len(dataset_train)*num_warmup)
+        elif num_warmup > 1:
+            num_warmup_steps = num_warmup
+        else:
+            Exception("num_warmup必须大于0")
+
+        scheduler = get_linear_schedule_with_warmup(
+            self.optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=self.epochs*len(dataset_train))
         print("\n"*15)
         print("开始训练.....")
         bar = tqdm(total=len(dataset_train)*self.epochs, dynamic_ncols=True)
@@ -40,9 +50,12 @@ class Train(object):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
                 outputs = self.model(**batch)
                 loss = outputs["loss"]
-                self.optimizer.zero_grad()
+
                 loss.backward()
                 self.optimizer.step()
+                scheduler.step()
+                self.optimizer.zero_grad()
+
                 self.cur_loss = loss
                 if self.cur_batch % self.show_batch == 0:
                     print_str = 'Training  Epoch [{}/{}] Loss: {:.4f}'.format(
@@ -81,7 +94,8 @@ class Train(object):
     def save(self):
         save_path = "./save/"
         os.makedirs(save_path, exist_ok=True)
-        torch.save(self.model, save_path+f"score_{self.best_score:.4f}.pt")
+        torch.save(self.model, save_path +
+                   f"score_{self.best_score:.4f} in epoch {self.cur_epoch}.pt")
 
     def load():
         pass

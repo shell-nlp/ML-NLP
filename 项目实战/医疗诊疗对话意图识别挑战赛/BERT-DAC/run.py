@@ -1,10 +1,7 @@
 import os
 import sys
 import time
-import pandas as pd
 import torch
-from importlib import import_module
-import argparse
 from utils import get_time_dif
 from transformers import set_seed, BertTokenizerFast
 from transformers import BertForSequenceClassification
@@ -13,12 +10,11 @@ from datasets import Dataset
 
 if __name__ == '__main__':
     sys.path.append(os.getcwd())
-    model_name = "Bert"  # bert
     task = "医疗诊疗对话意图识别挑战赛"
-    print(model_name)
     set_seed(1)
     torch.backends.cudnn.deterministic = True  # 保证每次结果一样
-    check_point = "bert-base-chinese"
+    model_names = ["hfl/chinese-macbert-base"]
+    check_point = model_names[0]
     start_time = time.time()
     print("Loading data...")
     train_path = "项目实战/医疗诊疗对话意图识别挑战赛/BERT-DAC/data/process_data/train.txt"
@@ -72,7 +68,7 @@ if __name__ == '__main__':
         from sklearn.metrics import accuracy_score
         acc = accuracy_score(batch["labels"].cpu(), predict.cpu())
         return acc
-    trainer = Train(model=model, epochs=20, lr=2e-5, weight_decay=0,
+    trainer = Train(model=model, epochs=20, lr=2e-5, weight_decay=1e-5,
                     show_batch=50, use_cuda=True,
                     compute_metrics=compute_metrics)
     trainer.train(dataset_train=train_loader, dataset_eval=dev_loader)
