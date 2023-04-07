@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import pandas as pd
 import torch
 from importlib import import_module
 import argparse
@@ -8,6 +9,7 @@ from utils import get_time_dif
 from transformers import set_seed, BertTokenizerFast
 from transformers import BertForSequenceClassification
 from datasets import Dataset
+
 
 if __name__ == '__main__':
     sys.path.append(os.getcwd())
@@ -49,23 +51,28 @@ if __name__ == '__main__':
     from transformers import DataCollatorWithPadding
 
     data_collator = DataCollatorWithPadding(tokenizer)
-    from sklearn import metrics
     from torch.utils.data import DataLoader
+
     train_loader = DataLoader(train_data, batch_size=64,
-                             collate_fn=data_collator, pin_memory=True)
+                              collate_fn=data_collator, pin_memory=True, shuffle=True)
     dev_loader = DataLoader(dev_data, batch_size=64,
-                            collate_fn=data_collator, pin_memory=True)
+                            collate_fn=data_collator, pin_memory=True, shuffle=True)
     test_loader = DataLoader(test_data, batch_size=64,
                              collate_fn=data_collator, pin_memory=True)
 
     model = BertForSequenceClassification.from_pretrained(
         check_point, num_labels=16)
-   
+
     from util.trainer import Train
 
-    def compute_metrics():
-        pass
+    def compute_metrics(model: BertForSequenceClassification, batch: dict):
+        output = model(**batch)
+        logits = output.logits
+        predict = torch.argmax(logits, dim=-1)
+        from sklearn.metrics import accuracy_score
+        acc = accuracy_score(batch["labels"].cpu(), predict.cpu())
+        return acc
     trainer = Train(model=model, epochs=20, lr=2e-5, weight_decay=0,
                     show_batch=50, use_cuda=True,
                     compute_metrics=compute_metrics)
-    trainer.train(dataset_train=train_loader)
+    trainer.train(dataset_train=train_loader, dataset_eval=dev_loader)
