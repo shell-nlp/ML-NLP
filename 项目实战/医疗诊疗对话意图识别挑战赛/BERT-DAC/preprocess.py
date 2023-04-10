@@ -34,7 +34,9 @@ def make_tag(path):
 
 def make_data(samples, path, is_train=True):
     out = ''
+    # pid: 对话id     sample 对应的  list
     for pid, sample in samples.items():  # sample is list
+        # sent: 一个对话中，对应的一个话
         for sent in sample:
             x = sent['speaker'] + '：' + sent['sentence']
             if is_train:
@@ -43,6 +45,7 @@ def make_data(samples, path, is_train=True):
             else:
                 y = ""
             out += (x + '\t' + str(y)).strip() + '\n'
+        out += "\n"  # TODO 用于识别一个完整的pid
     print(path)
     with open(path, 'w', encoding='utf-8') as f:
         f.write(out)

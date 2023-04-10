@@ -3,7 +3,8 @@ import numpy as np
 
 def min_max_scaler(X: np.ndarray, feature_range=(0, 1), eps=1e-8):
     """MinMax归一化
-
+    公式: Z = (X-X_min)/(X_max-X_min)
+    X_scale = Z*(max-min)+min   其中min,max 是feature_range的最小值和最大值
     Parameters
     ----------
     X : np.ndarray / list

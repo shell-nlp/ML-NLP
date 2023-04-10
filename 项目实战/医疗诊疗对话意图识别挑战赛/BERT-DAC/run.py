@@ -4,7 +4,6 @@ import time
 import torch
 from utils import get_time_dif
 from transformers import set_seed, BertTokenizerFast
-from transformers import BertForSequenceClassification
 from datasets import Dataset
 
 
@@ -24,6 +23,8 @@ if __name__ == '__main__':
                               names=["context", 'labels'])
     dev = Dataset.from_csv(dev_path, sep="\t", names=["context", 'labels'])
     test = Dataset.from_csv(test_path, sep="\t", names=["context"])
+    print(test[32])
+    assert 0
     tokenizer = BertTokenizerFast.from_pretrained(check_point)
 
     def f(batch):
@@ -56,14 +57,13 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_data, batch_size=64,
                              collate_fn=data_collator, pin_memory=True)
 
-    model = BertForSequenceClassification.from_pretrained(
-        check_point, num_labels=16)
-
+    from models.berts import Berts
     from util.trainer import Train
+    model = Berts(check_point=check_point)
 
-    def compute_metrics(model: BertForSequenceClassification, batch: dict):
+    def compute_metrics(model, batch: dict):
         output = model(**batch)
-        logits = output.logits
+        logits = output["logits"]
         predict = torch.argmax(logits, dim=-1)
         from sklearn.metrics import accuracy_score
         acc = accuracy_score(batch["labels"].cpu(), predict.cpu())
