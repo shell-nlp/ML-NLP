@@ -1,4 +1,3 @@
-from typing import Self
 from transformers import get_linear_schedule_with_warmup
 import os
 import torch.nn as nn
@@ -15,7 +14,7 @@ class TrainConfig:
 
 class Train(object):
     def __init__(self, model: nn.Module, epochs=20, lr=1e-5, weight_decay=0,
-                 show_batch=50, use_cuda=True, compute_metrics=None, is_better=True, save_path="./save/"):
+                 show_batch=50, use_cuda=True, compute_metrics=None, is_better=True, FGM=True, save_path="./save/"):
         self.model = model
         self.is_better = is_better  # 用于判断指标是越大越好还是越小越好
         self.device = torch.device(
@@ -32,6 +31,15 @@ class Train(object):
             self.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         self.compute_metrics = compute_metrics
         self.save_path = save_path
+        self.FGM = FGM
+        if self.FGM:
+            import sys
+            import os
+            
+            sys.path.append(os.path.dirname(__file__))
+            print("FGM已开启...")
+            from adversarial_training import FGM
+            self.fgm = FGM(self.model)
 
     def train(self, dataset_train, dataset_eval=None, num_warmup=1000):
         # 学习率衰减
@@ -56,8 +64,13 @@ class Train(object):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
                 outputs = self.model(**batch)
                 loss = outputs["loss"]
-
                 loss.backward()
+                # 加入FGM对抗训练
+                if self.FGM:
+                    self.fgm.attack()  # 在embedding上添加对抗扰动
+                    loss_adv = self.model(**batch)["loss"]
+                    loss_adv.backward()  # 反向传播，并在正常的grad基础上，累加对抗训练的梯度
+                    self.fgm.restore()  # 恢复embedding参数
                 self.optimizer.step()
                 scheduler.step()
                 self.optimizer.zero_grad()

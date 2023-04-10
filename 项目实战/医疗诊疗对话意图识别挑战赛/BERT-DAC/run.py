@@ -23,8 +23,7 @@ if __name__ == '__main__':
                               names=["context", 'labels'])
     dev = Dataset.from_csv(dev_path, sep="\t", names=["context", 'labels'])
     test = Dataset.from_csv(test_path, sep="\t", names=["context"])
-    print(test[32])
-    assert 0
+
     tokenizer = BertTokenizerFast.from_pretrained(check_point)
 
     def f(batch):
@@ -49,12 +48,12 @@ if __name__ == '__main__':
 
     data_collator = DataCollatorWithPadding(tokenizer)
     from torch.utils.data import DataLoader
-
-    train_loader = DataLoader(train_data, batch_size=64,
+    batch_size = 64
+    train_loader = DataLoader(train_data, batch_size=batch_size,
                               collate_fn=data_collator, pin_memory=True, shuffle=True)
-    dev_loader = DataLoader(dev_data, batch_size=64,
+    dev_loader = DataLoader(dev_data, batch_size=batch_size,
                             collate_fn=data_collator, pin_memory=True, shuffle=True)
-    test_loader = DataLoader(test_data, batch_size=64,
+    test_loader = DataLoader(test_data, batch_size=batch_size,
                              collate_fn=data_collator, pin_memory=True)
 
     from models.berts import Berts
@@ -68,7 +67,9 @@ if __name__ == '__main__':
         from sklearn.metrics import accuracy_score
         acc = accuracy_score(batch["labels"].cpu(), predict.cpu())
         return acc
-    trainer = Train(model=model, epochs=20, lr=2e-5, weight_decay=1e-5,
+    trainer = Train(model=model, epochs=20, lr=1e-4, weight_decay=0,
                     show_batch=50, use_cuda=True,
                     compute_metrics=compute_metrics)
-    trainer.train(dataset_train=train_loader, dataset_eval=dev_loader)
+    trainer.train(dataset_train=train_loader,
+                  dataset_eval=dev_loader, num_warmup=0.1)
+    
