@@ -50,9 +50,9 @@ if __name__ == '__main__':
     from torch.utils.data import DataLoader
     batch_size = 64
     train_loader = DataLoader(train_data, batch_size=batch_size,
-                              collate_fn=data_collator, pin_memory=True, shuffle=True)
+                              collate_fn=data_collator, pin_memory=True, shuffle=False)
     dev_loader = DataLoader(dev_data, batch_size=batch_size,
-                            collate_fn=data_collator, pin_memory=True, shuffle=True)
+                            collate_fn=data_collator, pin_memory=True, shuffle=False)
     test_loader = DataLoader(test_data, batch_size=batch_size,
                              collate_fn=data_collator, pin_memory=True)
 

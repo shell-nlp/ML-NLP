@@ -14,7 +14,7 @@ class TrainConfig:
 
 class Train(object):
     def __init__(self, model: nn.Module, epochs=20, lr=1e-5, weight_decay=0,
-                 show_batch=50, use_cuda=True, compute_metrics=None, is_better=True, FGM=True, save_path="./save/"):
+                 show_batch=50, use_cuda=True, compute_metrics=None, is_better=True, FGM=False, save_path="./save/"):
         self.model = model
         self.is_better = is_better  # 用于判断指标是越大越好还是越小越好
         self.device = torch.device(
@@ -24,6 +24,7 @@ class Train(object):
         self.cur_epoch = 0
         self.cur_batch = 0
         self.best_score = -1e8
+        self.best_epoch = -1
         self.lr = lr
         self.show_batch = show_batch
         self.weight_decay = weight_decay
@@ -35,7 +36,7 @@ class Train(object):
         if self.FGM:
             import sys
             import os
-            
+
             sys.path.append(os.path.dirname(__file__))
             print("FGM已开启...")
             from adversarial_training import FGM
@@ -102,12 +103,13 @@ class Train(object):
             score_ = score
         if score_ > self.best_score:
             self.best_score = abs(score_)
+            self.best_epoch = self.cur_epoch
             # 当保存地址 非None时，进行保存
             if self.save_path is not None:
                 self.save()
         eval_epoch = self.cur_epoch
 
-        eval_score_str = f' | Eval epoch:{eval_epoch} cur_score: {score:.4f} Best_score: {self.best_score:.4f}'
+        eval_score_str = f' | Eval epoch:{eval_epoch} cur_score: {score:.4f} Best_score: {self.best_score:.4f} in epoch {self.best_epoch}'
         return eval_score_str
 
     def save(self):
