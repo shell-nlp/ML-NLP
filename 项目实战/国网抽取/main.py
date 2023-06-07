@@ -1,7 +1,5 @@
 from paddlenlp import Taskflow
 from pprint import pprint
-# import paddle
-# paddle.fluid.install_check.run_check()
 
 parens_path = './项目实战/国网抽取/'
 docprompt = Taskflow("document_intelligence", model='docprompt')
