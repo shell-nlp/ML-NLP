@@ -143,3 +143,5 @@ datasets/
 runs/
 save/
 .vscode/
+*.bin
+*.json
