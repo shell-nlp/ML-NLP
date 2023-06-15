@@ -19,7 +19,7 @@ else:
 try:
     if torch.backends.mps.is_available():
         device = "mps"
-except: 
+except:
     pass
 
 
@@ -27,8 +27,10 @@ def main(
     load_8bit: bool = False,
     base_model: str = "",
     lora_weights: str = "",
-    prompt_template: str = "",  # The prompt template to use, will default to alpaca.
-    server_name: str = "0.0.0.0",  # Allows to listen on all interfaces by providing '0.
+    # The prompt template to use, will default to alpaca.
+    prompt_template: str = "",
+    # Allows to listen on all interfaces by providing '0.
+    server_name: str = "0.0.0.0",
     share_gradio: bool = False,
 ):
     base_model = base_model or os.environ.get("BASE_MODEL", "")
@@ -104,8 +106,11 @@ def main(
         stream_output=False,
         **kwargs,
     ):
-        input=None
+        input = None
         prompt = prompter.generate_prompt(instruction, input)
+        print('-'*100)
+        print(prompt)
+        print('-'*100)
         inputs = tokenizer(prompt, return_tensors="pt")
         input_ids = inputs["input_ids"].to(device)
         generation_config = GenerationConfig(
@@ -153,7 +158,7 @@ def main(
                         break
 
                     yield prompter.get_response(decoded_output)
-            print(decoded_output)
+            # print(decoded_output)
             return  # early return for stream_output
 
         # Without streaming
@@ -167,7 +172,7 @@ def main(
             )
         s = generation_output.sequences[0]
         output = tokenizer.decode(s)
-        print(output)
+        # print(output)
         yield prompter.get_response(output)
 
     gr.Interface(
@@ -202,7 +207,7 @@ def main(
                 label="Output",
             )
         ],
-        title="🦙🌲 LaWGPT",
+        title="🦙🌲 LiuYu's LaWGPT",
         description="",
     ).queue().launch(server_name="0.0.0.0", share=share_gradio)
 
