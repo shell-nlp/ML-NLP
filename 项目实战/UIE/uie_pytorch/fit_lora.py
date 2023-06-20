@@ -1,17 +1,3 @@
-# Copyright (c) 2022 Heiheiyoyo. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import argparse
 from re import T
 import shutil
@@ -26,7 +12,10 @@ from utils import IEDataset, logger, tqdm
 from model import UIE
 from evaluate import evaluate
 from utils import set_seed, SpanEvaluator, EarlyStopping, logging_redirect_tqdm
-
+# ----------------------------------------------------------------------------------
+from peft import get_peft_config, get_peft_model, LoraConfig, TaskType
+peft_config = LoraConfig(inference_mode=False,r=8,lora_alpha=32,lora_dropout=0.1,
+                         target_modules=['query','value'],bias='none')
 
 def do_train():
 
@@ -35,6 +24,8 @@ def do_train():
 
     tokenizer = BertTokenizerFast.from_pretrained(args.model)
     model = UIE.from_pretrained(args.model)
+    model = get_peft_model(model,peft_config)
+    model.print_trainable_parameters()
     if args.device == 'gpu':
         model = model.cuda()
     train_ds = IEDataset(args.train_path, tokenizer=tokenizer,
@@ -219,7 +210,7 @@ if __name__ == "__main__":
     # yapf: disable
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-b", "--batch_size", default=4, type=int,
+    parser.add_argument("-b", "--batch_size", default=16, type=int,
                         help="Batch size per GPU/CPU for training.")
     parser.add_argument("--learning_rate", default=1e-5,
                         type=float, help="The initial learning rate for Adam.")
