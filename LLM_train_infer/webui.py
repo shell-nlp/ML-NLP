@@ -78,11 +78,11 @@ def parse_arg():
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--model",default='chatGLM', help="Model name optional [baichuan, chatGLM]")
-    parser.add_argument("--model_ckpt", default='THUDM/chatglm2-6b',help="model checkpoint folder")
+    parser.add_argument("--model_ckpt", default='E:\git_dir\ml-nlp\LLM_train_infer\check_point\THUDM\chatglm2-6b',help="model checkpoint folder")
     parser.add_argument("--lora_ckpt", default=None, help="lora checkpoint folder")
     parser.add_argument("--max_turns", default=20, help="max multi-rounds chat turns")
-    parser.add_argument("--quantize", default=None, help="quantization config optional [None, int4, int8]")
-    parser.add_argument("--cache_dir", default='./cache', help="cache_dir")
+    parser.add_argument("--quantize", default='4bit', help="quantization config optional [None, int4, int8]")
+    # parser.add_argument("--cache_dir", default='./cache', help="cache_dir")
     args = parser.parse_args()
     return args
 
@@ -92,7 +92,8 @@ if __name__ == "__main__":
     MAX_TURNS = args.max_turns  # int参数无法传入，在外部全局定义
     name = args.model + (" lora" if args.lora_ckpt else "") + (f" quantize {args.quantize}" if args.quantize else "")
     model, tokenizer = load_quantize_llm(args.model, args.model_ckpt, args.quantize, torch.cuda.current_device(),
-                                         cache_dir=args.cache_dir)
+                                        #  cache_dir=args.cache_dir
+                                         )
     model = model.eval()
 
     with gr.Blocks() as demo:

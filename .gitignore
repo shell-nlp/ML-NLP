@@ -141,6 +141,7 @@ cython_debug/
 data/
 datasets/
 cache/
+check_point/
 runs/
 save/
 .vscode/

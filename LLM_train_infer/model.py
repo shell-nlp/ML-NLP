@@ -22,8 +22,8 @@ def load_quantize_llm(model, model_ckpt, quantize='4bit', local_rank=None,cache_
         model = AutoLoad.from_pretrained(
             model_ckpt,
             device_map=device_map,
-            cache_dir=cache_dir,
-            resume_download=True,
+            # cache_dir=cache_dir,
+            # resume_download=True,
             #                 load_in_4bit=True,
             torch_dtype=torch.float16,
             trust_remote_code=True,
@@ -41,8 +41,8 @@ def load_quantize_llm(model, model_ckpt, quantize='4bit', local_rank=None,cache_
         model = AutoLoad.from_pretrained(
             model_ckpt,
             device_map=device_map,
-            cache_dir=cache_dir,
-            resume_download=True,
+            # cache_dir=cache_dir,
+            # resume_download=True,
             load_in_8bit=True,
             torch_dtype=torch.float16,
             trust_remote_code=True,
@@ -52,15 +52,16 @@ def load_quantize_llm(model, model_ckpt, quantize='4bit', local_rank=None,cache_
         model = AutoLoad.from_pretrained(
             model_ckpt,
             device_map=device_map,
-            cache_dir=cache_dir,
-            resume_download=True,
+            # cache_dir=cache_dir,
+            # resume_download=True,
             torch_dtype=torch.float16,
             trust_remote_code=True,
         )
 
     tokenizer = AutoTokenizer.from_pretrained(model_ckpt, trust_remote_code=True,
-                                              cache_dir=cache_dir,
-                                              resume_download=True)
+                                            #   cache_dir=cache_dir,
+                                            #   resume_download=True
+                                              )
     if tokenizer.pad_token_id is None:
         print("pass unk_token_id to pad_token_id")
         tokenizer.pad_token_id = tokenizer.unk_token_id
