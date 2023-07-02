@@ -140,6 +140,7 @@ dmypy.json
 cython_debug/
 data/
 datasets/
+cache/
 runs/
 save/
 .vscode/
